@@ -6,6 +6,11 @@ export const createCompany = async (data) => {
   return res.data;
 };
 
+export const getMyCompany = async () => {
+  const res = await api.get("/company/my-company");
+  return res.data;
+};
+
 export const getCompany = async (id) => {
   const res = await api.get(`/company/${id}`);
   return res.data;

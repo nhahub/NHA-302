@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { ChevronDown, X, Trash2, Save } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { ChevronDown, X, Trash2, Save, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import Button from "./Button";
 import { useTranslation } from "react-i18next";
 
@@ -18,8 +18,30 @@ const SystemManagement = ({
   const [editMode, setEditMode] = useState(false);
   const [editedData, setEditedData] = useState({});
   const { t } = useTranslation();
+  
+  // Pagination and search states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  
+  // Get items per page based on selected target
+  const getItemsPerPage = () => {
+    switch (selectedTarget) {
+      case "Products":
+        return 5;  // Show only 5 products per page
+      default:
+        return 10; // 10 items per page for other entities
+    }
+  };
+  
+  const itemsPerPage = getItemsPerPage();
 
   const targets = ["Users", "Products", "Customers", "Companies"];
+
+  // Reset pagination and search when target changes
+  useEffect(() => {
+    setCurrentPage(1);
+    setSearchQuery("");
+  }, [selectedTarget]);
 
   // Determine which data to display based on selected target
   const getDisplayData = () => {
@@ -54,6 +76,78 @@ const SystemManagement = ({
   };
 
   const { data, error } = getDisplayData();
+
+  // Debug: Log data when it changes
+  useEffect(() => {
+    if (data && data.length > 0) {
+      console.log(`${selectedTarget} data loaded:`, data.length, 'items');
+    }
+  }, [data, selectedTarget]);
+
+  // Search and filter logic
+  const filteredData = useMemo(() => {
+    if (!data || !Array.isArray(data)) return [];
+    
+    if (!searchQuery.trim()) return data;
+
+    const query = searchQuery.toLowerCase();
+    
+    return data.filter((item) => {
+      switch (selectedTarget) {
+        case "Users":
+          return (
+            (item.username?.toLowerCase().includes(query)) ||
+            (item.email?.toLowerCase().includes(query)) ||
+            (item.phone?.toLowerCase().includes(query))
+          );
+        case "Products":
+          return (
+            (item.title?.toLowerCase().includes(query)) ||
+            (item.description?.toLowerCase().includes(query)) ||
+            (item.category?.toLowerCase().includes(query)) ||
+            (item.vendor?.toLowerCase().includes(query))
+          );
+        case "Customers":
+          return (
+            (item.name?.toLowerCase().includes(query)) ||
+            (item.email?.toLowerCase().includes(query)) ||
+            (item.phone?.toLowerCase().includes(query)) ||
+            (item.address?.toLowerCase().includes(query))
+          );
+        case "Companies":
+          return (
+            (item.name?.toLowerCase().includes(query)) ||
+            (item.invoicePrefix?.toLowerCase().includes(query)) ||
+            (item.currency?.toLowerCase().includes(query))
+          );
+        default:
+          return true;
+      }
+    });
+  }, [data, searchQuery, selectedTarget]);
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedData = filteredData.slice(startIndex, endIndex);
+
+  // Pagination handlers
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  const goToPage = (pageNumber) => {
+    setCurrentPage(pageNumber);
+  };
 
   // Get display name for each item based on type
   const getItemName = (item) => {
@@ -107,7 +201,6 @@ const SystemManagement = ({
       case "Products":
         return {
           title: "",
-          titleAr: "",
           description: "",
           descriptionAr: "",
           price: 0,
@@ -252,7 +345,6 @@ const SystemManagement = ({
       case "Products": {
         const productFields = [
           { label: "Title", key: "title", type: "text", required: true },
-          { label: "Title (Arabic)", key: "titleAr", type: "text" },
           {
             label: "Description",
             key: "description",
@@ -439,6 +531,13 @@ const SystemManagement = ({
         {t("SystemManagement")}
       </h2>
 
+      {/* Info Badge - Shows total count */}
+      {data && data.length > 0 && (
+        <div className="mb-4 inline-flex items-center gap-2 bg-primary/10 dark:bg-primary_dark/10 text-primary dark:text-primary_dark px-3 py-1 rounded-lg text-sm font-medium">
+          <span>Total {selectedTarget}: {data.length}</span>
+        </div>
+      )}
+
       {/* Dropdown + Add */}
       <div className="flex items-center gap-3 mb-6">
         <div className="relative w-full">
@@ -480,6 +579,23 @@ const SystemManagement = ({
         </Button>
       </div>
 
+      {/* Search Bar */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
+          <input
+            type="text"
+            placeholder={`${t("Search")} ${selectedTarget.toLowerCase()}...`}
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setCurrentPage(1); // Reset to first page on search
+            }}
+            className="w-full pl-10 pr-4 py-2 bg-background dark:bg-background_dark border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary dark:focus:ring-primary_dark text-gray-800 dark:text-white placeholder-gray-400 dark:placeholder-gray-500"
+          />
+        </div>
+      </div>
+
       {/* Loading State */}
       {isLoading && (
         <div className="bg-background dark:bg-background_dark border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm p-8 text-center">
@@ -500,51 +616,123 @@ const SystemManagement = ({
 
       {/* Table */}
       {!isLoading && !error && (
-        <div className="bg-background dark:bg-background_dark border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
-          <table className="w-full text-left border-collapse">
-            <thead className="bg-secondary dark:bg-secondary_dark border-b border-gray-200 dark:border-gray-700">
-              <tr>
-                <th className="py-3 px-4 font-medium text-gray-600 dark:text-white">
-                  {selectedTarget.slice(0, -1)} {t("Name")}
-                </th>
-                <th className="py-3 px-4 font-medium text-gray-600 dark:text-white text-center">
-                  {t("Actions")}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {data && data.length > 0 ? (
-                data.map((item) => (
-                  <tr
-                    key={item._id || item.id}
-                    className="border-b border-gray-200 dark:border-gray-700 hover:bg-accent dark:hover:bg-accent_dark transition-colors"
-                  >
-                    <td className="py-3 px-4 text-gray-800 dark:text-white">
-                      {getItemName(item)}
-                    </td>
-                    <td className="py-3 px-4 flex justify-center gap-2">
-                      <button
-                        onClick={() => handleView(item)}
-                        className="text-primary dark:text-primary_dark hover:underline font-medium"
-                      >
-                        {t("View")}
-                      </button>
+        <>
+          <div className="bg-background dark:bg-background_dark border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-secondary dark:bg-secondary_dark border-b border-gray-200 dark:border-gray-700">
+                <tr>
+                  <th className="py-3 px-4 font-medium text-gray-600 dark:text-white">
+                    {selectedTarget.slice(0, -1)} {t("Name")}
+                  </th>
+                  <th className="py-3 px-4 font-medium text-gray-600 dark:text-white text-center">
+                    {t("Actions")}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {paginatedData && paginatedData.length > 0 ? (
+                  paginatedData.map((item) => (
+                    <tr
+                      key={item._id || item.id}
+                      className="border-b border-gray-200 dark:border-gray-700 hover:bg-accent dark:hover:bg-accent_dark transition-colors"
+                    >
+                      <td className="py-3 px-4 text-gray-800 dark:text-white">
+                        {getItemName(item)}
+                      </td>
+                      <td className="py-3 px-4 flex justify-center gap-2">
+                        <button
+                          onClick={() => handleView(item)}
+                          className="text-primary dark:text-primary_dark hover:underline font-medium"
+                        >
+                          {t("View")}
+                        </button>
+                      </td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td
+                      colSpan="2"
+                      className="py-8 px-4 text-center text-gray-500 dark:text-gray-400"
+                    >
+                      {searchQuery ? `No matching ${selectedTarget.toLowerCase()} found` : `No ${selectedTarget.toLowerCase()} found`}
                     </td>
                   </tr>
-                ))
-              ) : (
-                <tr>
-                  <td
-                    colSpan="2"
-                    className="py-8 px-4 text-center text-gray-500 dark:text-gray-400"
-                  >
-                    No {selectedTarget.toLowerCase()} found
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+                )}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Pagination Controls */}
+          {filteredData.length > 0 && (
+            <div className="mt-4 flex items-center justify-between bg-background dark:bg-background_dark border border-gray-200 dark:border-gray-700 rounded-lg px-4 py-3">
+              <div className="text-sm text-gray-600 dark:text-gray-300">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredData.length)} of {filteredData.length} {selectedTarget.toLowerCase()}
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded-lg transition-colors ${
+                    currentPage === 1
+                      ? "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-accent dark:hover:bg-accent_dark"
+                  }`}
+                >
+                  <ChevronLeft size={20} />
+                </button>
+
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: totalPages }, (_, i) => i + 1).map((pageNum) => {
+                    // Show first page, last page, current page, and pages around current
+                    if (
+                      pageNum === 1 ||
+                      pageNum === totalPages ||
+                      (pageNum >= currentPage - 1 && pageNum <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => goToPage(pageNum)}
+                          className={`px-3 py-1 rounded-lg text-sm font-medium transition-colors ${
+                            currentPage === pageNum
+                              ? "bg-primary dark:bg-primary_dark text-white"
+                              : "text-gray-700 dark:text-gray-300 hover:bg-accent dark:hover:bg-accent_dark"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    } else if (
+                      pageNum === currentPage - 2 ||
+                      pageNum === currentPage + 2
+                    ) {
+                      return (
+                        <span key={pageNum} className="px-2 text-gray-400 dark:text-gray-600">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <button
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                  className={`p-2 rounded-lg transition-colors ${
+                    currentPage === totalPages
+                      ? "text-gray-400 dark:text-gray-600 cursor-not-allowed"
+                      : "text-gray-700 dark:text-gray-300 hover:bg-accent dark:hover:bg-accent_dark"
+                  }`}
+                >
+                  <ChevronRight size={20} />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
 
       {/* View/Edit Modal */}

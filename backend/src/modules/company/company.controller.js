@@ -69,6 +69,40 @@ export const updateCompany = async (req, res) => {
 
 const deleteCompany = deleteOne(companyModel);
 
+// Get company by current user
+const getMyCompany = async (req, res, next) => {
+  try {
+    const userId = req.user._id;
+    
+    if (!userId) {
+      return res.status(401).json({ 
+        status: "fail",
+        message: "User not authenticated" 
+      });
+    }
+
+    const company = await companyModel.findOne({ user: userId });
+    
+    if (!company) {
+      return res.status(404).json({ 
+        status: "fail",
+        message: "No company found for this user" 
+      });
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: company,
+    });
+  } catch (error) {
+    console.error("❌ Get My Company Error:", error);
+    res.status(500).json({
+      status: "error",
+      message: error.message,
+    });
+  }
+};
+
 // Admin: Get summary of a company with populated fields
 const getCompanySummary = async (req, res, next) => {
   try {
@@ -106,6 +140,7 @@ export {
   createCompany,
   getAllCompanies,
   getCompanyById,
+  getMyCompany,
   // updateCompany,
   deleteCompany,
   getCompanySummary,

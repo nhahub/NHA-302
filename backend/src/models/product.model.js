@@ -18,7 +18,6 @@ const productSchema = new mongoose.Schema(
     },
     titleAr: {
      type: String,
-      unique: [true, "Product titlear is must be unique"],
      trim: true,
     minLength: [2, "too short product name"],
     },
@@ -82,7 +81,7 @@ const productSchema = new mongoose.Schema(
     company: {
       type: mongoose.SchemaTypes.ObjectId,
       ref: "company",
-      //required: [true, "product company is required"],
+      required: [true, "product company is required"],
     },
   },
   { timestamps: true }

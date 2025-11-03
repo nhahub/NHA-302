@@ -100,7 +100,7 @@ export default function AdminDashboard() {
           getAllCompanies().catch(() => ({ data: [] })),
           getAdminBillingSummary().catch(() => ({ data: [] })),
           getAllCustomers().catch(() => ({ data: [] })),
-          getAllProducts().catch(() => ({ data: [] })),
+          getAllProducts({ page: 1, limit: 1000, sort: '-createdAt' }).catch(() => ({ data: [] })), // Fetch all products sorted by newest
           getAllInvoices().catch(() => ({ data: [] })),
           getRevenueOverTime("month").catch(() => ({ data: [] })),
         ]);

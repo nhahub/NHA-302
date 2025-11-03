@@ -4,13 +4,14 @@ import {
   protect,
   restrictTo,
 } from "../../utils/middlewares/auth.middleware.js";
+import { uploadProductImage } from "../../utils/middlewares/upload.middleware.js";
 
 const productRouter = express.Router();
 
 productRouter
   .route("/")
   .get(protect, restrictTo("admin"), productController.getAllProducts)
-  .post(protect, productController.createProduct);
+  .post(protect, uploadProductImage, productController.createProduct);
 
 productRouter
   .route("/overview")
@@ -19,7 +20,7 @@ productRouter
 productRouter
   .route("/:id")
   .get(protect, productController.getProductById)
-  .patch(protect, productController.updateProduct)
+  .patch(protect, uploadProductImage, productController.updateProduct)
   .delete(protect, productController.deleteProductById);
 
 productRouter

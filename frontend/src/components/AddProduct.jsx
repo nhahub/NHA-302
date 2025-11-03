@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate } from "react-router-dom";
 import { FaCheck, FaUpload } from "react-icons/fa";
 import toast from "react-hot-toast";
 import { createProduct } from "../api/product";
+import { getMyCompany } from "../api/company";
 import Loader from "./Loader";
 import { useTranslation } from "react-i18next";
 
@@ -19,6 +20,8 @@ function AddProduct() {
   const [showCustomCategory, setShowCustomCategory] = useState(false);
   const [customCategory, setCustomCategory] = useState("");
   const [message, setMessage] = useState("");
+  const [companyId, setCompanyId] = useState(null);
+  const [isLoadingCompany, setIsLoadingCompany] = useState(true);
 
   const [formData, setFormData] = useState({
     title: "",
@@ -30,8 +33,31 @@ function AddProduct() {
     sku: "",
   });
 
-  const userData = JSON.parse(localStorage.getItem("user"));
-  const companyId = userData?.company;
+  // Fetch company on component mount
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        setIsLoadingCompany(true);
+        const response = await getMyCompany();
+        
+        if (response.status === "success" && response.data) {
+          setCompanyId(response.data._id);
+          console.log("🏢 Company loaded:", response.data);
+        } else {
+          toast.error("Failed to load company information");
+          setTimeout(() => navigate("/login"), 2000);
+        }
+      } catch (error) {
+        console.error("❌ Error fetching company:", error);
+        toast.error("Failed to load company. Please log in again.");
+        setTimeout(() => navigate("/login"), 2000);
+      } finally {
+        setIsLoadingCompany(false);
+      }
+    };
+
+    fetchCompany();
+  }, [navigate]);
 
   useEffect(() => {
     if (quickActionData) {
@@ -115,7 +141,12 @@ function AddProduct() {
   };
 
   const validateForm = () => {
+    if (!companyId) {
+      toast.error("Company ID is missing. Please log in again.");
+      return false;
+    }
     if (!formData.title.trim()) return toast.error("Product title is required");
+    if (!formData.sku.trim()) return toast.error("Product SKU is required");
     if (!formData.description.trim())
       return toast.error("Product description is required");
     if (!formData.price || parseFloat(formData.price) < 0)
@@ -134,21 +165,32 @@ function AddProduct() {
     setMessage("");
 
     try {
-      const productData = {
-        title: formData.title.trim(),
-        sku: formData.sku.trim(),
-        description: formData.description.trim(),
-        price: parseFloat(formData.price),
-        quantity: parseInt(formData.quantity),
-        category: formData.category.trim(),
-        company: companyId,
-      };
+      // Create FormData to handle file upload
+      const formDataToSend = new FormData();
+      
+      // Add all form fields
+      formDataToSend.append("title", formData.title.trim());
+      formDataToSend.append("sku", formData.sku.trim());
+      formDataToSend.append("description", formData.description.trim());
+      formDataToSend.append("price", parseFloat(formData.price));
+      formDataToSend.append("quantity", parseInt(formData.quantity));
+      formDataToSend.append("category", formData.category.trim());
+      formDataToSend.append("company", companyId);
 
       if (formData.discount) {
-        productData.discount = parseFloat(formData.discount);
+        formDataToSend.append("discount", parseFloat(formData.discount));
       }
 
-      const res = await createProduct(productData);
+      // Add image file if selected
+      if (image) {
+        formDataToSend.append("imgCover", image);
+        console.log("🖼️ Image file added:", image.name);
+      }
+
+      console.log("📦 Sending product data with image");
+      console.log("🏢 Company ID:", companyId);
+
+      const res = await createProduct(formDataToSend);
       console.log("✅ Product Created:", res);
 
       toast.success("Product added successfully!");
@@ -173,7 +215,7 @@ function AddProduct() {
     }
   };
 
-  if (isSubmitting) return <Loader />;
+  if (isLoadingCompany || isSubmitting) return <Loader />;
 
   return (
     <div className="md:p-5 font-quicksand">

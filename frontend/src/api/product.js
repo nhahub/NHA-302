@@ -2,12 +2,22 @@ import api from "../api/axios";
 
 //User
 export const createProduct = async (data) => {
-  const res = await api.post("/product", data);
+  const isFormData = data instanceof FormData;
+  const res = await api.post("/product", data, {
+    headers: isFormData
+      ? { "Content-Type": "multipart/form-data" }
+      : { "Content-Type": "application/json" },
+  });
   return res.data;
 };
 
 export const updateProduct = async (id, data) => {
-  const res = await api.patch(`/product/${id}`, data);
+  const isFormData = data instanceof FormData;
+  const res = await api.patch(`/product/${id}`, data, {
+    headers: isFormData
+      ? { "Content-Type": "multipart/form-data" }
+      : { "Content-Type": "application/json" },
+  });
   return res.data;
 };
 
@@ -35,8 +45,8 @@ export const getProductsByCompany = async (id) => {
 };
 //Admin
 
-export const getAllProducts = async () => {
-  const res = await api.get("/product");
+export const getAllProducts = async (params = {}) => {
+  const res = await api.get("/product", { params });
   return res.data;
 };
 

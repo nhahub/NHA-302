@@ -11,15 +11,17 @@ export default class ApiFeatures {
     pagination() {
         let page = this.queryString.page * 1 || 1
         if (page <= 0) page = 1
-        let skip = (page - 1) * 4
+        let limit = this.queryString.limit * 1 || 4  // Allow custom limit, default to 4
+        let skip = (page - 1) * limit
         this.page = page
-        this.myQuery.skip(skip).limit(4)
+        this.limit = limit
+        this.myQuery.skip(skip).limit(limit)
         return this;
     }
 
     filter(){
         let filterObj = {...this.queryString}
-    let excludedQuery = ['page','sort','keyword','fields']
+    let excludedQuery = ['page','sort','keyword','fields','limit']  // Added 'limit' to excluded params
     excludedQuery.forEach((q)=>{
         delete filterObj[q]
     })

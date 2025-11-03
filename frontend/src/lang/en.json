@@ -243,6 +243,7 @@
   },
 
   "search": "Search...",
+  "Search": "Search",
   "filter": "Filter",
   "sortBy": "Sort by",
   "addInvoice": "Add Invoice",
@@ -593,6 +594,10 @@
   "ChangeImage": "Change Image",
   "UploadImage": "Upload Image",
   "CompanyUpdatedSuccessfully": "Company updated successfully",
+  "NoCompanyMessage": "You haven't created a company yet. Create one to manage your business settings.",
+  "CreateCompany": "Create Company",
+  "Creating": "Creating...",
+  "CompanyCreatedSuccessfully": "Company created successfully",
 
   "DangerZone": "Danger Zone",
   "DeleteAccount": "Delete this Account",

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search, Filter, ChevronDown, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -16,6 +16,7 @@ import {
   useProductsByCompany,
   useDeleteProduct,
 } from "../features/product/useProductQuery";
+import { getMyCompany } from "../api/company";
 import Loader from "./Loader";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -28,6 +29,8 @@ function Products() {
   const [sortConfig, setSortConfig] = useState({ key: null, direction: "asc" });
   const [searchTerm, setSearchTerm] = useState("");
   const [openItems, setOpenItems] = useState({});
+  const [companyId, setCompanyId] = useState(null);
+  const [isLoadingCompany, setIsLoadingCompany] = useState(true);
 
   // Filter & Sort States
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -40,16 +43,36 @@ function Products() {
     inStock: false,
   });
 
-  // Get company ID from localStorage
-  const userData = JSON.parse(localStorage.getItem("user"));
-  const companyId = userData?.company;
+  // Fetch company ID from API
+  useEffect(() => {
+    const fetchCompany = async () => {
+      try {
+        setIsLoadingCompany(true);
+        const response = await getMyCompany();
+        
+        if (response.status === "success" && response.data) {
+          setCompanyId(response.data._id);
+          console.log("🏢 Company loaded:", response.data._id);
+        } else {
+          toast.error("Failed to load company information");
+        }
+      } catch (error) {
+        console.error("❌ Error fetching company:", error);
+        toast.error("Failed to load company");
+      } finally {
+        setIsLoadingCompany(false);
+      }
+    };
 
-  // Fetch products from API
-  const { data, isLoading, error } = useProductsByCompany(companyId);
+    fetchCompany();
+  }, []);
+
+  // Fetch products from API - only when companyId is available
+  const { data, isLoading, error, refetch } = useProductsByCompany(companyId);
   const { mutate: deleteProduct } = useDeleteProduct();
 
-  // Loading state
-  if (isLoading) return <Loader />;
+  // Combined loading state
+  if (isLoadingCompany || isLoading) return <Loader />;
 
   // Error state
   if (error)
@@ -63,6 +86,16 @@ function Products() {
   const products = Array.isArray(data?.data?.products)
     ? data.data.products
     : [];
+
+  // Debug: Log product images
+  console.log('📦 Products loaded:', products.length);
+  if (products.length > 0) {
+    console.log('🖼️ Sample product:', {
+      title: products[0]?.title,
+      imgCover: products[0]?.imgCover,
+      hasImage: !!products[0]?.imgCover
+    });
+  }
 
   // Get unique categories for filter
   const categories = [...new Set(products.map((p) => p.category))].filter(
@@ -655,9 +688,17 @@ function Products() {
                 >
                   <div className="flex items-center gap-3">
                     <img
-                      src={p.imgCover || "https://placehold.co/150x150/png"}
+                      src={p.imgCover || "https://via.placeholder.com/150"}
                       alt={p.title}
                       className="w-12 h-12 object-cover rounded-lg border border-gray-200 dark:border-gray-600 shadow-sm"
+                      loading="lazy"
+                      crossOrigin="anonymous"
+                      onError={(e) => {
+                        console.error('Image load error:', e.target.src);
+                        e.target.onerror = null;
+                        e.target.src = "https://via.placeholder.com/150/cccccc/666666?text=No+Image";
+                      }}
+                      onLoad={() => console.log('Image loaded:', p.imgCover)}
                     />
                     <div>
                       <p className="text-gray-900 dark:text-white text-sm font-quicksand">
@@ -754,6 +795,7 @@ function Products() {
                                         "Product deleted successfully"
                                       );
                                       toggleModal(p._id, false);
+                                      refetch(); // Refetch products after deletion
                                     },
                                     onError: (err) => {
                                       toast.error(
@@ -789,9 +831,16 @@ function Products() {
               <div className="flex justify-between items-center w-full py-3 px-4 bg-accent dark:bg-accent_dark">
                 <div className="flex gap-3 items-center">
                   <img
-                    src={p.imgCover || "https://placehold.co/50x50/png"}
+                    src={p.imgCover || "https://via.placeholder.com/50"}
                     alt={p.title}
                     className="w-12 h-12 object-cover rounded-lg"
+                    loading="lazy"
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      console.error('Mobile image load error:', e.target.src);
+                      e.target.onerror = null;
+                      e.target.src = "https://via.placeholder.com/50/cccccc/666666?text=No+Image";
+                    }}
                   />
                   <div>
                     <p className="font-medium text-gray-900 dark:text-white">

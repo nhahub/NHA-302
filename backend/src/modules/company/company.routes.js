@@ -13,6 +13,11 @@ companyRouter
   .post(protect, companyController.createCompany)
   .get(protect, restrictTo("admin"), companyController.getAllCompanies);
 
+// Get current user's company
+companyRouter
+  .route("/my-company")
+  .get(protect, companyController.getMyCompany);
+
 companyRouter
   .route("/summary/:id")
   .get(protect, restrictTo("admin"), companyController.getCompanySummary);

@@ -11,7 +11,10 @@ import {
 } from "../features/user/useUserQuery";
 import { usePreferences } from "../utils/usePreferences";
 import { useCompanyContext } from "../features/company/useCompanyContext";
-import { useUpdateCompany } from "../features/company/useCompanyQuery";
+import {
+  useUpdateCompany,
+  useCreateCompany,
+} from "../features/company/useCompanyQuery";
 import { useNavigate } from "react-router-dom";
 import toast from "react-hot-toast";
 
@@ -26,10 +29,12 @@ function Settings() {
   const updateUserMutation = useUpdateUser(currentUser?._id);
   const updatePasswordMutation = useUpdatePassword();
   const updateCompanyMutation = useUpdateCompany(currentUser?.company);
+  const createCompanyMutation = useCreateCompany();
   const deleteAccountMutation = useDeleteAccount();
 
   const [showModal, setShowModal] = useState(false);
   const [dangerModal, setDangerModal] = useState(false);
+  const [showCreateCompanyForm, setShowCreateCompanyForm] = useState(false);
 
   const [username, setUsername] = useState(currentUser?.username || "");
   const [email, setEmail] = useState(currentUser?.email || "");
@@ -64,6 +69,51 @@ function Settings() {
     } catch (err) {
       console.error("❌ Failed to delete account:", err);
       toast.error(err?.response?.data?.message || "Failed to delete account.");
+    }
+  };
+
+  const handleCreateCompany = async () => {
+    const companyData = {
+      name: companyName || "My Company",
+      invoicePrefix: invoicePrefix || "INV-",
+      taxRate: taxRate || 14,
+      currency: currency || "EGP",
+    };
+
+    try {
+      const formData = new FormData();
+      formData.append("name", companyData.name);
+      formData.append("invoicePrefix", companyData.invoicePrefix);
+      formData.append("taxRate", companyData.taxRate.toString());
+      formData.append("currency", companyData.currency);
+
+        // Attach authenticated user's id so backend can link company to user
+        if (currentUser?._id) formData.append("user", currentUser._id);
+
+      
+
+      await createCompanyMutation.mutateAsync(formData, {
+        onSuccess: (res) => {
+          updateCompany(res.data);
+          setShowCreateCompanyForm(false);
+          setLogoFile(null);
+          if (res.data?.companyLogo) {
+            setLogoPreview(getImageUrl(res.data.companyLogo));
+          }
+          toast.success(
+            t("CompanyCreatedSuccessfully") || "Company created successfully"
+          );
+        },
+        onError: (err) => {
+          console.error("❌ Company creation failed", err);
+          toast.error(
+            err?.response?.data?.message || "Failed to create company."
+          );
+        },
+      });
+    } catch (err) {
+      console.error("❌ Failed to create company:", err);
+      toast.error(err?.response?.data?.message || "Failed to create company.");
     }
   };
 
@@ -408,7 +458,162 @@ function Settings() {
             {t("BusinessSettings")}
           </h2>
 
-          <div className="max-w-lg bg-accent dark:bg-accent_dark p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xl space-y-4 sm:space-y-6 transition-all duration-300">
+          {!currentCompany ? (
+            // No Company - Show Create Company Form
+            <div className="max-w-lg bg-accent dark:bg-accent_dark p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xl space-y-4 sm:space-y-6 transition-all duration-300">
+              <div className="text-center space-y-4">
+                <p className="text-sm sm:text-md text-gray-700 dark:text-gray-300">
+                  {t("NoCompanyMessage") ||
+                    "You haven't created a company yet. Create one to manage your business settings."}
+                </p>
+
+                {!showCreateCompanyForm ? (
+                  <Button
+                    className="mb-0 bg-primary dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black"
+                    onClick={() => setShowCreateCompanyForm(true)}
+                  >
+                    {t("CreateCompany") || "Create Company"}
+                  </Button>
+                ) : (
+                  <div className="space-y-4 sm:space-y-6 mt-6">
+                    {/* Company Logo */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
+                      <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
+                        {t("CompanyLogo")}:
+                      </label>
+
+                      <div className="flex items-center gap-3 sm:gap-4 flex-1">
+                        {logoPreview && (
+                          <img
+                            src={logoPreview}
+                            alt="logo"
+                            className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded"
+                          />
+                        )}
+
+                        <label className="cursor-pointer flex-1">
+                          <input
+                            type="file"
+                            className="hidden"
+                            id="company-logo-create"
+                            accept="image/*"
+                            onChange={handleLogoChange}
+                          />
+                          <div className="flex items-center justify-center py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark border border-transparent hover:border-primary dark:hover:border-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ">
+                            {logoFile ? t("ChangeImage") : t("UploadLogo")}
+                          </div>
+                        </label>
+                        {logoFile && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setLogoFile(null);
+                              setLogoPreview("");
+                              const fileInput = document.getElementById(
+                                "company-logo-create"
+                              );
+                              if (fileInput) fileInput.value = "";
+                            }}
+                            className="p-1.5 sm:p-2 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition flex-shrink-0"
+                            title="Remove selected image"
+                          >
+                            <X size={14} className="sm:w-4 sm:h-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Company Name */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
+                      <label className="text-sm sm:text-md font-medium text-black dark:text-white text-left">
+                        {t("BusinessName")}
+                      </label>
+                      <input
+                        type="text"
+                        value={companyName}
+                        placeholder="My Company"
+                        onChange={(e) => setCompanyName(e.target.value)}
+                        className="w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition"
+                      />
+                    </div>
+
+                    {/* Invoice Prefix */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
+                      <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
+                        {t("InvoicePrefix")}:
+                      </label>
+                      <input
+                        type="text"
+                        value={invoicePrefix}
+                        placeholder="INV-"
+                        onChange={(e) => setInvoicePrefix(e.target.value)}
+                        className="w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition"
+                      />
+                    </div>
+
+                    {/* Tax Rate */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
+                      <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
+                        {t("TaxRate")} :
+                      </label>
+                      <input
+                        type="number"
+                        value={taxRate}
+                        placeholder="14"
+                        onChange={(e) => setTaxRate(e.target.value)}
+                        className="w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition "
+                      />
+                    </div>
+
+                    {/* Currency */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
+                      <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
+                        {t("Currency")} :
+                      </label>
+                      <select
+                        className="w-full sm:flex-1 bg-secondary dark:bg-secondary_dark py-2 px-4 rounded-md shadow-sm text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition "
+                        value={currency}
+                        onChange={(e) => setCurrency(e.target.value)}
+                      >
+                        <option value="EGP">{t("EGP")}</option>
+                        <option value="USD">{t("USD")}</option>
+                        <option value="EUR">{t("EUR")}</option>
+                      </select>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex justify-center gap-3 pt-4 sm:pt-6">
+                      <Button
+                        className="mb-0 bg-gray-500 dark:bg-gray-600 before:bg-gray-400 text-white hover:text-black"
+                        onClick={() => {
+                          setShowCreateCompanyForm(false);
+                          setCompanyName("");
+                          setInvoicePrefix("");
+                          setTaxRate("");
+                          setCurrency("");
+                          setLogoFile(null);
+                          setLogoPreview("");
+                        }}
+                      >
+                        {t("Cancel")}
+                      </Button>
+                      <Button
+                        className="mb-0 bg-primary dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black"
+                        onClick={handleCreateCompany}
+                        disabled={createCompanyMutation.isPending}
+                      >
+                        {createCompanyMutation.isPending
+                          ? t("Creating")
+                          : t("CreateCompany")}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Company Exists - Show Update Form
+            <div className="max-w-lg bg-accent dark:bg-accent_dark p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xl space-y-4 sm:space-y-6 transition-all duration-300">
             {/* Company Logo */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
               <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
@@ -528,6 +733,7 @@ function Settings() {
               </Button>
             </div>
           </div>
+          )}
         </section>
 
         {/* Danger Zone */}
