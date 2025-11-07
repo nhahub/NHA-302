@@ -8,39 +8,6 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
-// export const askAI = catchAsyncError(async (req, res, next) => {
-//   const userQuestion = req.body.question;
-//   const userCompany = req.user.company;
-
-//   //fetch live company data
-//   const invoices = await invoiceModel.find({ company: userCompany });
-//   const products = await productModel.find({ company: userCompany });
-//   const customers = await customerModel.find({ company: userCompany });
-
-//   //build context for the AI
-
-//   const context = `
-// You are an AI assistant for a company management system.
-// Here is the current data for this user's company:
-
-// Products: ${JSON.stringify(products.slice(0, 5))}
-// Invoices: ${JSON.stringify(invoices.slice(0, 5))}
-// Customers: ${JSON.stringify(customers.slice(0, 5))}
-
-// Now, answer the following user question in a helpful, business-oriented tone:
-// "${userQuestion}"
-//     `;
-
-//   //call free model API (ollama locally)
-//   const response = await axios.post("http://localhost:11434/api/generate", {
-//     model: "llama3",
-//     prompt: context,
-//     stream: false,
-//   });
-
-//   res.status(200).json({ status: "success", data: response.data });
-// });
-
 export const askAI = CatchAsync(async (req, res, next) => {
   const userQuestion = req.body.question;
   const userCompany = req.user.company;

@@ -1,4 +1,11 @@
 import User from "../../models/user.model.js";
+import { companyModel } from "../../models/company.model.js";
+import { customerModel } from "../../models/customer.model.js";
+
+import PricingBilling from "../../models/pricing_billing.model.js";
+import { productModel } from "../../models/product.model.js";
+
+import Invoice from "../../models/invoice.model.js";
 import {
   getAll,
   getById,
@@ -124,17 +131,37 @@ export const updatePassword = catchAsync(async (req, res, next) => {
   });
 });
 
+// export const deleteAccount = catchAsync(async (req, res, next) => {
+//   const user = await User.findByIdAndDelete(req.user._id);
+//   if (!user) {
+//     return next(new AppError("User not found", 404));
+//   }
+//   res.status(200).json({
+//     status: "success",
+//     data: null,
+//   });
+// });
+
 export const deleteAccount = catchAsync(async (req, res, next) => {
-  const user = await User.findByIdAndDelete(req.user._id);
-  if (!user) {
-    return next(new AppError("User not found", 404));
-  }
+  const userId = req.user._id;
+
+  const user = await User.findByIdAndDelete(userId);
+  if (!user) return next(new AppError("User not found", 404));
+
+  // Delete related documents
+  await Promise.all([
+    companyModel.deleteMany({ owner: userId }),
+    PricingBilling.deleteMany({ user: userId }),
+    productModel.deleteMany({ user: userId }),
+    customerModel.deleteMany({ user: userId }),
+    Invoice.deleteMany({ user: userId }),
+  ]);
+
   res.status(200).json({
     status: "success",
-    data: null,
+    message: "User and all related data deleted successfully",
   });
 });
-
 // Admin Controllers
 export const createAdmin = catchAsync(async (req, res, next) => {
   const newAdmin = await User.create({

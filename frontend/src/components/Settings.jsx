@@ -23,12 +23,14 @@ function Settings() {
   const { language, changeLanguage, theme, changeTheme, savePreferences } =
     usePreferences();
   const { currentUser, updateUser } = useUserContext();
-  const { currentCompany, updateCompany } = useCompanyContext();
+  const { currentCompany, updateCompany, saveCompany } = useCompanyContext();
   const navigate = useNavigate();
 
   const updateUserMutation = useUpdateUser(currentUser?._id);
   const updatePasswordMutation = useUpdatePassword();
-  const updateCompanyMutation = useUpdateCompany(currentCompany?._id || currentUser?.company);
+  const updateCompanyMutation = useUpdateCompany(
+    currentCompany?._id || currentUser?.company
+  );
   const createCompanyMutation = useCreateCompany();
   const deleteAccountMutation = useDeleteAccount();
 
@@ -93,7 +95,8 @@ function Settings() {
 
       await createCompanyMutation.mutateAsync(formData, {
         onSuccess: (res) => {
-          updateCompany(res.data);
+          // updateCompany(res.data);
+          saveCompany(res.data);
           setShowCreateCompanyForm(false);
           setLogoFile(null);
           if (res.data?.companyLogo) {
@@ -158,7 +161,9 @@ function Settings() {
   const hasCompany = React.useMemo(() => {
     if (!currentCompany) return false;
     // consider company exists if it has an id or a name
-    return Boolean(currentCompany._id || currentCompany.id || currentCompany.name);
+    return Boolean(
+      currentCompany._id || currentCompany.id || currentCompany.name
+    );
   }, [currentCompany]);
 
   const handleLogoChange = (e) => {
@@ -650,7 +655,11 @@ function Settings() {
                   />
 
                   {/* File Input */}
-                  <label className={`cursor-pointer flex-1 ${!canEditCompany ? 'pointer-events-none opacity-60' : ''}`}>
+                  <label
+                    className={`cursor-pointer flex-1 ${
+                      !canEditCompany ? "pointer-events-none opacity-60" : ""
+                    }`}
+                  >
                     <input
                       type="file"
                       className="hidden"
@@ -696,7 +705,9 @@ function Settings() {
                   placeholder={currentCompany?.name || "Company Name"}
                   onChange={(e) => setCompanyName(e.target.value)}
                   disabled={!canEditCompany}
-                  className={`w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${!canEditCompany ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  className={`w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${
+                    !canEditCompany ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
 
@@ -711,7 +722,9 @@ function Settings() {
                   placeholder={currentCompany?.invoicePrefix || "INV-"}
                   onChange={(e) => setInvoicePrefix(e.target.value)}
                   disabled={!canEditCompany}
-                  className={`w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${!canEditCompany ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  className={`w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${
+                    !canEditCompany ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
 
@@ -726,7 +739,9 @@ function Settings() {
                   placeholder={currentCompany?.taxRate || "14"}
                   onChange={(e) => setTaxRate(e.target.value)}
                   disabled={!canEditCompany}
-                  className={`w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${!canEditCompany ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  className={`w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${
+                    !canEditCompany ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
                 />
               </div>
 
@@ -736,7 +751,9 @@ function Settings() {
                   {t("Currency")} :
                 </label>
                 <select
-                  className={`w-full sm:flex-1 bg-secondary dark:bg-secondary_dark py-2 px-4 rounded-md shadow-sm text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${!canEditCompany ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  className={`w-full sm:flex-1 bg-secondary dark:bg-secondary_dark py-2 px-4 rounded-md shadow-sm text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${
+                    !canEditCompany ? "opacity-60 cursor-not-allowed" : ""
+                  }`}
                   value={currency}
                   onChange={(e) => setCurrency(e.target.value)}
                   disabled={!canEditCompany}
@@ -748,24 +765,27 @@ function Settings() {
               </div>
 
               {/* Save Button */}
-                <div className="flex justify-center pt-4 sm:pt-6">
-                  <div className="w-full">
-                    {!canEditCompany && (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 text-center">
-                        {t("NoPermissionEditCompany") || "You don't have permission to edit this company."}
-                      </p>
-                    )}
-                    <Button
-                      className="mb-0 w-full sm:w-[16em] before:w-full sm:before:w-[336px] bg-primary dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black text-sm sm:text-base"
-                      onClick={handleSaveBusinessSettings}
-                      disabled={!canEditCompany || updateCompanyMutation.isPending}
-                    >
-                      {updateCompanyMutation.isPending
-                        ? t("Saving")
-                        : t("SaveBusinessSettings")}
-                    </Button>
-                  </div>
+              <div className="flex justify-center pt-4 sm:pt-6">
+                <div className="w-full">
+                  {!canEditCompany && (
+                    <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 text-center">
+                      {t("NoPermissionEditCompany") ||
+                        "You don't have permission to edit this company."}
+                    </p>
+                  )}
+                  <Button
+                    className="mb-0 w-full sm:w-[16em] before:w-full sm:before:w-[336px] bg-primary dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black text-sm sm:text-base"
+                    onClick={handleSaveBusinessSettings}
+                    disabled={
+                      !canEditCompany || updateCompanyMutation.isPending
+                    }
+                  >
+                    {updateCompanyMutation.isPending
+                      ? t("Saving")
+                      : t("SaveBusinessSettings")}
+                  </Button>
                 </div>
+              </div>
             </div>
           )}
         </section>

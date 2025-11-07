@@ -25,6 +25,7 @@ export const trackUsage = async (userId, type) => {
   if (!billing.usage || !billing.limits || !billing.pricing) {
     throw new Error("Billing configuration is incomplete");
   }
+  billing.usage[type]++;
   const currentUsage = Number(billing.usage[type] || 0);
   const limit = Number(billing.limits[type] || 0);
   const unitPrice = Number(billing.pricing[`${type}sUnitPrice`] || 0);
