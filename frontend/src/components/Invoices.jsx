@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useContext } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { X } from "lucide-react";
 import arrowicon from "../assets/open-arrow-icon.png";
@@ -7,6 +7,7 @@ import {
   useInvoiceStats,
 } from "../features/invoice/useInvoiceQuery";
 import { useUserContext } from "../features/user/useUserContext";
+import { CompanyContext } from "../features/company/CompanyContext";
 import Button from "./ui/Button";
 import Table from "./ui/Table";
 import Loader from "./Loader";
@@ -16,6 +17,7 @@ function Invoices() {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const { currentUser } = useUserContext();
+  const { currentCompany } = useContext(CompanyContext) || {};
   const [openLatest, setOpenLatest] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [sortBy, setSortBy] = useState("date");
@@ -25,8 +27,10 @@ function Invoices() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showSortModal, setShowSortModal] = useState(false);
 
-  // Get company ID from current user
-  const companyId = currentUser?.company;
+  // Resolve company id: prefer CompanyContext, then currentUser, then stored company
+  const storedCompany = JSON.parse(localStorage.getItem("company"));
+  const companyId =
+    currentCompany?._id || currentUser?.company || storedCompany?._id || storedCompany?.id || null;
 
   // Fetch invoices by company and stats
   const {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useContext } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import arrowicon from "../assets/open-arrow-icon.png";
 import Button from "./ui/Button";
@@ -10,8 +10,9 @@ import {
 import { useCustomerByCompany } from "../features/customer/useCustomerQuery";
 import { getProductsByCompany } from "../api/product";
 import { useUserContext } from "../features/user/useUserContext";
+import { CompanyContext } from "../features/company/CompanyContext";
 import Loader from "./Loader";
-import toast from "react-hot-toast";
+// toast intentionally not used in this component
 import { useTranslation } from "react-i18next";
 
 function AddInvoice() {
@@ -19,6 +20,7 @@ function AddInvoice() {
   const navigate = useNavigate();
   const location = useLocation();
   const { currentUser } = useUserContext();
+  const { currentCompany } = useContext(CompanyContext) || {};
   const createInvoiceMutation = useCreateInvoice();
   const updateInvoiceMutation = useUpdateInvoice();
 
@@ -43,8 +45,10 @@ function AddInvoice() {
   const [customerSearch, setCustomerSearch] = useState("");
   const [productSearch, setProductSearch] = useState("");
 
-  // Get company ID from user
-  const companyId = currentUser?.company;
+  // Get company ID (prefer CompanyContext, then currentUser, then stored company)
+  const storedCompany = JSON.parse(localStorage.getItem("company"));
+  const companyId =
+    currentCompany?._id || currentUser?.company || storedCompany?._id || storedCompany?.id || "";
 
   // Fetch customers using the hook
   const { data: customersData, isLoading: customersLoading } =
@@ -89,7 +93,7 @@ function AddInvoice() {
     discount: 0,
     products: [], // Array of { product: productId, quantity: number }
     customer: "", // Customer ID
-    company: currentUser?.company || "", // Automatically set from logged-in user
+    company: companyId || "", // Automatically set from CompanyContext/user
   });
 
   // Selected products with full details for display
@@ -124,7 +128,7 @@ function AddInvoice() {
               quantity: p.quantity,
             })) || [],
           customer: invoice.customer?._id || invoice.customer || "",
-          company: currentUser?.company || "",
+          company: companyId || "",
         });
 
         // Set selected products with full details
@@ -152,9 +156,7 @@ function AddInvoice() {
             // Products are just IDs - need to fetch details
             const fetchProductDetails = async () => {
               try {
-                const productsData = await getProductsByCompany(
-                  currentUser?.company
-                );
+                const productsData = await getProductsByCompany(companyId);
                 const allProducts = productsData?.data?.products || [];
 
                 // Match invoice products with full product details
@@ -225,7 +227,7 @@ function AddInvoice() {
         setDataRestored(true);
       }
     }
-  }, [isEditMode, invoiceResponse, invoiceLoading, currentUser?.company]);
+  }, [isEditMode, invoiceResponse, invoiceLoading, companyId]);
 
   // Load saved invoice data from sessionStorage on mount (only if not in edit mode)
   useEffect(() => {
@@ -239,7 +241,7 @@ function AddInvoice() {
       setFormData((prev) => ({
         ...prev,
         ...parsedData,
-        company: currentUser?.company || "",
+        company: companyId || "",
       }));
       setDataRestored(true);
     }
@@ -264,7 +266,7 @@ function AddInvoice() {
 
     // Clear the return flag after restoring
     sessionStorage.removeItem("returnToInvoice");
-  }, [currentUser?.company, isEditMode]);
+  }, [companyId, isEditMode]);
 
   // Save invoice data to sessionStorage whenever it changes
   useEffect(() => {
@@ -557,7 +559,7 @@ function AddInvoice() {
         discount: 0,
         products: [],
         customer: "",
-        company: currentUser?.company || "",
+          company: companyId || "",
       });
       setSelectedProducts([]);
       sessionStorage.removeItem("invoiceData");

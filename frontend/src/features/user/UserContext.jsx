@@ -19,6 +19,7 @@ function UserProvider({ children }) {
 
   const saveUserSession = (user, token) => {
     console.log("Saving user session:", { user });
+    localStorage.removeItem("company");
     const userRole = user?.role || "user";
     localStorage.setItem("token", token);
     localStorage.setItem("role", userRole);
@@ -51,6 +52,7 @@ function UserProvider({ children }) {
     localStorage.removeItem("token");
     localStorage.removeItem("role");
     localStorage.removeItem("user");
+    localStorage.removeItem("company");
     setCurrentUser(null);
     setToken(null);
     setRole(null);

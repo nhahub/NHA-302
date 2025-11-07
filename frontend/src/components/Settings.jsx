@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import Button from "../components/ui/Button";
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { X } from "lucide-react";
 import { useUserContext } from "../features/user/useUserContext";
 import Theme from "./Theme";
@@ -28,7 +28,7 @@ function Settings() {
 
   const updateUserMutation = useUpdateUser(currentUser?._id);
   const updatePasswordMutation = useUpdatePassword();
-  const updateCompanyMutation = useUpdateCompany(currentUser?.company);
+  const updateCompanyMutation = useUpdateCompany(currentCompany?._id || currentUser?.company);
   const createCompanyMutation = useCreateCompany();
   const deleteAccountMutation = useDeleteAccount();
 
@@ -55,6 +55,7 @@ function Settings() {
   );
   const [logoFile, setLogoFile] = useState(null);
 
+  console.log(currentCompany);
   const handleDeleteAccount = async () => {
     try {
       await deleteAccountMutation.mutateAsync();
@@ -87,10 +88,8 @@ function Settings() {
       formData.append("taxRate", companyData.taxRate.toString());
       formData.append("currency", companyData.currency);
 
-        // Attach authenticated user's id so backend can link company to user
-        if (currentUser?._id) formData.append("user", currentUser._id);
-
-      
+      // Attach authenticated user's id so backend can link company to user
+      if (currentUser?._id) formData.append("user", currentUser._id);
 
       await createCompanyMutation.mutateAsync(formData, {
         onSuccess: (res) => {
@@ -138,6 +137,28 @@ function Settings() {
     if (currentCompany?.companyLogo) {
       setLogoPreview(getImageUrl(currentCompany.companyLogo));
     }
+  }, [currentCompany]);
+
+  // Permission: allow editing if user is admin or owner of the company
+  const canEditCompany = React.useMemo(() => {
+    if (!currentCompany) return true; // no company -> user can create
+    if (!currentUser) return false;
+    try {
+      const ownerId = currentCompany.user?._id || currentCompany.user;
+      return (
+        currentUser.role === "admin" ||
+        String(ownerId) === String(currentUser._id)
+      );
+    } catch {
+      return false;
+    }
+  }, [currentCompany, currentUser]);
+
+  // Determine if the current user already has a company object we should treat as "exists"
+  const hasCompany = React.useMemo(() => {
+    if (!currentCompany) return false;
+    // consider company exists if it has an id or a name
+    return Boolean(currentCompany._id || currentCompany.id || currentCompany.name);
   }, [currentCompany]);
 
   const handleLogoChange = (e) => {
@@ -458,7 +479,7 @@ function Settings() {
             {t("BusinessSettings")}
           </h2>
 
-          {!currentCompany ? (
+          {!hasCompany ? (
             // No Company - Show Create Company Form
             <div className="max-w-lg bg-accent dark:bg-accent_dark p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xl space-y-4 sm:space-y-6 transition-all duration-300">
               <div className="text-center space-y-4">
@@ -582,9 +603,9 @@ function Settings() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div className="flex justify-center gap-3 pt-4 sm:pt-6">
+                    <div className="flex justify-center gap-3 pt-4 sm:pt-6 mx-auto w-100">
                       <Button
-                        className="mb-0 bg-gray-500 dark:bg-gray-600 before:bg-gray-400 text-white hover:text-black"
+                        className="mb-0 bg-gray-500 dark:bg-gray-600 before:bg-gray-400 text-white hover:text-black mx-auto"
                         onClick={() => {
                           setShowCreateCompanyForm(false);
                           setCompanyName("");
@@ -598,7 +619,7 @@ function Settings() {
                         {t("Cancel")}
                       </Button>
                       <Button
-                        className="mb-0 bg-primary dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black"
+                        className="mb-0 bg-primary  dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black"
                         onClick={handleCreateCompany}
                         disabled={createCompanyMutation.isPending}
                       >
@@ -614,125 +635,138 @@ function Settings() {
           ) : (
             // Company Exists - Show Update Form
             <div className="max-w-lg bg-accent dark:bg-accent_dark p-4 sm:p-6 lg:p-8 rounded-2xl shadow-xl space-y-4 sm:space-y-6 transition-all duration-300">
-            {/* Company Logo */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
-              <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
-                {t("CompanyLogo")}:
-              </label>
-
-              <div className="flex items-center gap-3 sm:gap-4 flex-1">
-                {/* Logo Preview */}
-                <img
-                  src={logoPreview}
-                  alt="logo"
-                  className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded"
-                />
-
-                {/* File Input */}
-                <label className="cursor-pointer flex-1">
-                  <input
-                    type="file"
-                    className="hidden"
-                    id="company-logo"
-                    accept="image/*"
-                    onChange={handleLogoChange}
-                  />
-                  <div className="flex items-center justify-center py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark border border-transparent hover:border-primary dark:hover:border-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ">
-                    {logoFile ? t("ChangeImage") : t("UploadLogo")}
-                  </div>
+              {/* Company Logo */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-6">
+                <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
+                  {t("CompanyLogo")}:
                 </label>
-                {logoFile && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setLogoFile(null);
-                      setLogoPreview(
-                        getImageUrl(currentCompany?.companyLogo) || ""
-                      );
-                      // Reset file input
-                      const fileInput = document.getElementById("company-logo");
-                      if (fileInput) fileInput.value = "";
-                    }}
-                    className="p-1.5 sm:p-2 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition flex-shrink-0"
-                    title="Remove selected image"
-                  >
-                    <X size={14} className="sm:w-4 sm:h-4" />
-                  </button>
-                )}
+
+                <div className="flex items-center gap-3 sm:gap-4 flex-1">
+                  {/* Logo Preview */}
+                  <img
+                    src={logoPreview}
+                    alt="logo"
+                    className="w-10 h-10 sm:w-12 sm:h-12 object-cover rounded"
+                  />
+
+                  {/* File Input */}
+                  <label className={`cursor-pointer flex-1 ${!canEditCompany ? 'pointer-events-none opacity-60' : ''}`}>
+                    <input
+                      type="file"
+                      className="hidden"
+                      id="company-logo"
+                      accept="image/*"
+                      onChange={handleLogoChange}
+                      disabled={!canEditCompany}
+                    />
+                    <div className="flex items-center justify-center py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark border border-transparent hover:border-primary dark:hover:border-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ">
+                      {logoFile ? t("ChangeImage") : t("UploadLogo")}
+                    </div>
+                  </label>
+                  {logoFile && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogoFile(null);
+                        setLogoPreview(
+                          getImageUrl(currentCompany?.companyLogo) || ""
+                        );
+                        // Reset file input
+                        const fileInput =
+                          document.getElementById("company-logo");
+                        if (fileInput) fileInput.value = "";
+                      }}
+                      className="p-1.5 sm:p-2 rounded-md bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 hover:bg-red-200 dark:hover:bg-red-900/50 transition flex-shrink-0"
+                      title="Remove selected image"
+                    >
+                      <X size={14} className="sm:w-4 sm:h-4" />
+                    </button>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Company Name  */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
-              <label className="text-sm sm:text-md font-medium text-black dark:text-white text-left">
-                {t("BusinessName")}
-              </label>
-              <input
-                type="text"
-                value={companyName}
-                placeholder={currentCompany?.name || "Company Name"}
-                onChange={(e) => setCompanyName(e.target.value)}
-                className="w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition"
-              />
-            </div>
+              {/* Company Name  */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
+                <label className="text-sm sm:text-md font-medium text-black dark:text-white text-left">
+                  {t("BusinessName")}
+                </label>
+                <input
+                  type="text"
+                  value={companyName}
+                  placeholder={currentCompany?.name || "Company Name"}
+                  onChange={(e) => setCompanyName(e.target.value)}
+                  disabled={!canEditCompany}
+                  className={`w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${!canEditCompany ? 'opacity-60 cursor-not-allowed' : ''}`}
+                />
+              </div>
 
-            {/* Invoice Prefix */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
-              <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
-                {t("InvoicePrefix")}:
-              </label>
-              <input
-                type="text"
-                value={invoicePrefix}
-                placeholder={currentCompany?.invoicePrefix || "INV-"}
-                onChange={(e) => setInvoicePrefix(e.target.value)}
-                className="w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition"
-              />
-            </div>
+              {/* Invoice Prefix */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
+                <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
+                  {t("InvoicePrefix")}:
+                </label>
+                <input
+                  type="text"
+                  value={invoicePrefix}
+                  placeholder={currentCompany?.invoicePrefix || "INV-"}
+                  onChange={(e) => setInvoicePrefix(e.target.value)}
+                  disabled={!canEditCompany}
+                  className={`w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${!canEditCompany ? 'opacity-60 cursor-not-allowed' : ''}`}
+                />
+              </div>
 
-            {/* Tax Rate */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
-              <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
-                {t("TaxRate")} :
-              </label>
-              <input
-                type="number"
-                value={taxRate}
-                placeholder={currentCompany?.taxRate || "14"}
-                onChange={(e) => setTaxRate(e.target.value)}
-                className="w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition "
-              />
-            </div>
+              {/* Tax Rate */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
+                <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
+                  {t("TaxRate")} :
+                </label>
+                <input
+                  type="number"
+                  value={taxRate}
+                  placeholder={currentCompany?.taxRate || "14"}
+                  onChange={(e) => setTaxRate(e.target.value)}
+                  disabled={!canEditCompany}
+                  className={`w-full sm:flex-1 py-2 px-3 rounded-md shadow-sm bg-secondary dark:bg-secondary_dark text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${!canEditCompany ? 'opacity-60 cursor-not-allowed' : ''}`}
+                />
+              </div>
 
-            {/* Currency */}
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
-              <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
-                {t("Currency")} :
-              </label>
-              <select
-                className="w-full sm:flex-1 bg-secondary dark:bg-secondary_dark py-2 px-4 rounded-md shadow-sm text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition "
-                value={currency}
-                onChange={(e) => setCurrency(e.target.value)}
-              >
-                <option value="EGP">{t("EGP")}</option>
-                <option value="USD">{t("USD")}</option>
-                <option value="EUR">{t("EUR")}</option>
-              </select>
-            </div>
+              {/* Currency */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-6">
+                <label className="w-full sm:w-40 text-sm sm:text-md font-medium text-black dark:text-white">
+                  {t("Currency")} :
+                </label>
+                <select
+                  className={`w-full sm:flex-1 bg-secondary dark:bg-secondary_dark py-2 px-4 rounded-md shadow-sm text-center text-xs sm:text-sm text-primary dark:text-primary_dark focus:ring-2 focus:ring-primary focus:outline-none transition ${!canEditCompany ? 'opacity-60 cursor-not-allowed' : ''}`}
+                  value={currency}
+                  onChange={(e) => setCurrency(e.target.value)}
+                  disabled={!canEditCompany}
+                >
+                  <option value="EGP">{t("EGP")}</option>
+                  <option value="USD">{t("USD")}</option>
+                  <option value="EUR">{t("EUR")}</option>
+                </select>
+              </div>
 
-            {/* Save Button */}
-            <div className="flex justify-center pt-4 sm:pt-6">
-              <Button
-                className="mb-0 w-full sm:w-[16em] before:w-full sm:before:w-[336px] bg-primary dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black text-sm sm:text-base"
-                onClick={handleSaveBusinessSettings}
-                disabled={updateCompanyMutation.isPending}
-              >
-                {updateCompanyMutation.isPending
-                  ? t("Saving")
-                  : t("SaveBusinessSettings")}
-              </Button>
+              {/* Save Button */}
+                <div className="flex justify-center pt-4 sm:pt-6">
+                  <div className="w-full">
+                    {!canEditCompany && (
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mb-2 text-center">
+                        {t("NoPermissionEditCompany") || "You don't have permission to edit this company."}
+                      </p>
+                    )}
+                    <Button
+                      className="mb-0 w-full sm:w-[16em] before:w-full sm:before:w-[336px] bg-primary dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black text-sm sm:text-base"
+                      onClick={handleSaveBusinessSettings}
+                      disabled={!canEditCompany || updateCompanyMutation.isPending}
+                    >
+                      {updateCompanyMutation.isPending
+                        ? t("Saving")
+                        : t("SaveBusinessSettings")}
+                    </Button>
+                  </div>
+                </div>
             </div>
-          </div>
           )}
         </section>
 

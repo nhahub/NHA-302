@@ -15,6 +15,27 @@ function CompanyProvider({ children }) {
     setIsCompanySelected(!!currentCompany);
   }, [currentCompany]);
 
+  // On mount: if we don't have a company stored, try to fetch the user's company from the API
+  useEffect(() => {
+    const ensureCompanyFromServer = async () => {
+      // If we already have a company in state, skip fetching
+      if (currentCompany && (currentCompany._id || currentCompany.id)) return;
+
+      try {
+        const res = await companyApi.getMyCompany();
+        if (res && res.data) {
+          saveCompany(res.data);
+        }
+      } catch {
+        // Ignore errors (404 = no company, 401 = not authenticated)
+      }
+    };
+
+    ensureCompanyFromServer();
+    // We intentionally run this only once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const saveCompany = (company) => {
     if (!company) return;
     localStorage.setItem("company", JSON.stringify(company));

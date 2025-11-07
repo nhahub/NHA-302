@@ -3,6 +3,8 @@ import { useNavigate } from "react-router-dom";
 import ViewIcon from "../../assets/view-icon.png";
 import DetailsIcon from "../../assets/details-icon.png";
 import PrintIcon from "../../assets/print-icon.png";
+import { Trash2 } from "lucide-react";
+import { useDeleteInvoice } from "../../features/invoice/useInvoiceQuery";
 import { useTranslation } from "react-i18next";
 
 // This is a reusable UI component for displaying invoices.
@@ -13,6 +15,9 @@ const Table = ({ invoices, className }) => {
   const { t } = useTranslation();
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [invoiceToDelete, setInvoiceToDelete] = useState(null);
+  const deleteMutation = useDeleteInvoice();
 
   // Reset to page 1 when invoices change (filtering, sorting, etc.)
   useEffect(() => {
@@ -356,6 +361,20 @@ const Table = ({ invoices, className }) => {
                         title="Print Invoice"
                       />
                     </div>
+
+                    {/* Delete action */}
+                    <div
+                      className="relative group/icon cursor-pointer"
+                      onClick={() => {
+                        setInvoiceToDelete(invoice);
+                        setShowDeleteModal(true);
+                      }}
+                    >
+                      <div className="absolute inset-0 bg-red-500/20 dark:bg-red-400/20 rounded-full scale-0 group-hover/icon:scale-150 transition-transform duration-300"></div>
+                      <div className="w-6 h-6 relative z-10 flex items-center justify-center text-red-600 dark:text-red-400 hover:scale-125 transition-all duration-300" title="Delete Invoice">
+                        <Trash2 size={18} />
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))
@@ -442,11 +461,91 @@ const Table = ({ invoices, className }) => {
                   <img src={PrintIcon} alt="Print" className="w-4 h-4" />
                   {t("Print")}
                 </button>
+                <button
+                  onClick={() => {
+                    setInvoiceToDelete(invoice);
+                    setShowDeleteModal(true);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 text-red-600 dark:text-red-400 rounded-lg py-2 px-3 transition-colors font-quicksand text-sm font-medium"
+                >
+                  <Trash2 size={16} />
+                  {t("Delete")}
+                </button>
               </div>
             </div>
           ))
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex justify-center items-center z-50 p-4">
+          <div className="bg-background dark:bg-background_dark rounded-2xl shadow-xl w-full max-w-md p-6 relative max-h-[90vh] overflow-y-auto border border-gray-200 dark:border-gray-700">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-2xl font-semibold text-primary dark:text-primary_dark font-robotoCondensed">
+                {t("confirmDelete")}
+              </h3>
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setInvoiceToDelete(null);
+                }}
+                className="text-gray-500 dark:text-gray-400 hover:text-red-600 dark:hover:text-red-500 transition-all"
+              >
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            <p className="text-sm text-gray-700 dark:text-gray-300 mb-6">
+              {t("deleteInvoiceConfirmationText")}
+            </p>
+
+            <div className="flex gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setInvoiceToDelete(null);
+                }}
+                className="flex-1 px-4 py-2 bg-secondary dark:bg-secondary_dark text-gray-900 dark:text-white rounded-xl hover:bg-gray-300 dark:hover:bg-gray-700 font-medium transition-all duration-500"
+              >
+                {t("cancel")}
+              </button>
+
+              <button
+                onClick={async () => {
+                  if (!invoiceToDelete) return;
+                  try {
+                    await deleteMutation.mutateAsync(invoiceToDelete._id || invoiceToDelete.id);
+                    // Close modal
+                    setShowDeleteModal(false);
+                    setInvoiceToDelete(null);
+                  } catch (err) {
+                    // keep modal open and optionally show an error - for now close and log
+                    console.error("Failed to delete invoice:", err);
+                    setShowDeleteModal(false);
+                    setInvoiceToDelete(null);
+                  }
+                }}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 font-medium transition-all duration-500"
+              >
+                {deleteMutation.isLoading ? t("deleting") : t("confirmDelete")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Pagination - Always visible */}
       {invoices.length > 0 && (
@@ -456,10 +555,10 @@ const Table = ({ invoices, className }) => {
             <button
               onClick={() => handlePageChange(currentPage - 1)}
               disabled={currentPage === 1}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-quicksand font-medium transition-all duration-300 flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 bg-accent rounded-lg text-xs sm:text-sm font-quicksand font-medium transition-all duration-300 flex items-center gap-2 ${
                 currentPage === 1
-                  ? "text-gray-400 dark:text-gray-600 cursor-not-allowed bg-gray-100 dark:bg-gray-800"
-                  : "text-gray-700 dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-primary_dark/10 hover:text-primary dark:hover:text-primary_dark hover:scale-105 hover:shadow-md"
+                  ? "text-gray-400 bg-accent dark:text-gray-600 cursor-not-allowed dark:bg-gray-800"
+                  : "text-gray-700 bg-accent dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-primary_dark/10 hover:text-primary dark:hover:text-primary_dark hover:scale-105 hover:shadow-md"
               }`}
             >
               <svg
@@ -507,10 +606,10 @@ const Table = ({ invoices, className }) => {
             <button
               onClick={() => handlePageChange(currentPage + 1)}
               disabled={currentPage === totalPages}
-              className={`px-3 sm:px-4 py-2 rounded-lg text-xs sm:text-sm font-quicksand font-medium transition-all duration-300 flex items-center gap-2 ${
+              className={`px-3 sm:px-4 py-2 bg-accent rounded-lg text-xs sm:text-sm font-quicksand font-medium transition-all duration-300 flex items-center gap-2 ${
                 currentPage === totalPages
-                  ? "text-gray-400 dark:text-gray-600 cursor-not-allowed bg-gray-100 dark:bg-gray-800"
-                  : "text-gray-700 dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-primary_dark/10 hover:text-primary dark:hover:text-primary_dark hover:scale-105 hover:shadow-md"
+                  ? "text-gray-400 bg-accent dark:text-gray-600 cursor-not-allowed dark:bg-gray-800"
+                  : "text-gray-700 bg-accent dark:text-gray-300 hover:bg-primary/10 dark:hover:bg-primary_dark/10 hover:text-primary dark:hover:text-primary_dark hover:scale-105 hover:shadow-md"
               }`}
             >
               <span className="hidden sm:inline">{t("Next")}</span>

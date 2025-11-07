@@ -1040,8 +1040,8 @@ function Dashboard() {
                                   nameKey="product.name"
                                   cx="50%"
                                   cy="50%"
-                                  innerRadius={50}
-                                  outerRadius={75}
+                                  innerRadius={40}
+                                  outerRadius={65}
                                   paddingAngle={3}
                                   label={(entry) =>
                                     `${(entry.percent * 100).toFixed(0)}%`

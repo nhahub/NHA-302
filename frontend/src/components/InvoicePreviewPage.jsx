@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useReactToPrint } from "react-to-print";
 import jsPDF from "jspdf";
@@ -73,15 +73,115 @@ function InvoicePreviewPage() {
     return currentUser?.company;
   }, [invoiceData, currentUser]);
 
-  // Handle print
-  const handlePrint = useReactToPrint({
+  // Handle print via react-to-print, with a safe fallback
+  const reactToPrintHandler = useReactToPrint({
     content: () => invoiceRef.current,
     documentTitle: `Invoice-${invoiceData?.invoiceId}`,
+    removeAfterPrint: true,
     onAfterPrint: () => {
       setMessage("Invoice printed successfully!");
       setTimeout(() => setMessage(""), 3000);
     },
   });
+
+  // Fallback: open a new window with cloned content and styles then print
+  const fallbackPrint = useCallback(async (element) => {
+    try {
+      const printWindow = window.open("", "_blank", "noopener,noreferrer");
+      if (!printWindow) throw new Error("Unable to open print window");
+
+      const doc = printWindow.document;
+      doc.open();
+
+      // Collect styles from parent document
+      const styles = Array.from(document.querySelectorAll("link[rel=stylesheet], style")).map(
+        (node) => node.outerHTML
+      ).join("\n");
+
+      const html = `<!doctype html><html><head><meta charset="utf-8"/><title>Invoice-${invoiceData?.invoiceId}</title>${styles}</head><body>${element.innerHTML}</body></html>`;
+      doc.write(html);
+      doc.close();
+
+      // Wait for images/fonts to load
+      await new Promise((resolve) => {
+        const onLoad = () => resolve();
+        // If content already loaded, resolve shortly
+        setTimeout(onLoad, 250);
+      });
+
+      printWindow.focus();
+      printWindow.print();
+      // Optional: close after print dialog (some browsers block close)
+      // printWindow.close();
+    } catch (err) {
+      console.error("Print fallback failed:", err);
+      setMessage("Failed to print invoice");
+      setTimeout(() => setMessage(""), 3000);
+    }
+  }, [invoiceData]);
+
+  // Public handler used by buttons and auto-print
+  const handlePrint = useCallback(async () => {
+    if (!invoiceRef.current) return;
+    setMessage("Preparing document for print...");
+    try {
+      // Primary approach: generate a PDF and open it in a new tab, then call print
+      const element = invoiceRef.current;
+      const canvas = await html2canvas(element, { scale: 2, useCORS: true, logging: false });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+      const imgWidth = 210; // A4 width mm
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth, imgHeight);
+
+      // Create blob and open in new tab
+      const blob = pdf.output('blob');
+      const url = URL.createObjectURL(blob);
+      const printWindow = window.open(url, '_blank');
+      if (!printWindow) {
+        // If popup blocked, fallback to react-to-print or inline fallback
+        console.warn('Popup blocked when opening PDF, trying react-to-print fallback');
+        try {
+          await reactToPrintHandler();
+        } catch (err) {
+          console.warn('react-to-print failed, using DOM fallback', err);
+          await fallbackPrint(element);
+        }
+        setMessage('');
+        return;
+      }
+
+      // Wait shortly for the PDF to load then invoke print
+      const tryPrint = () => {
+        try {
+          printWindow.focus();
+          printWindow.print();
+          setMessage('');
+        } catch (err) {
+          console.error('Print window error:', err);
+          setMessage('Failed to open print dialog');
+          setTimeout(() => setMessage(''), 3000);
+        } finally {
+          // Revoke URL after a delay to allow browser to access it
+          setTimeout(() => URL.revokeObjectURL(url), 20000);
+        }
+      };
+
+      // Some browsers need time to load the PDF; poll until window.document is ready
+      setTimeout(tryPrint, 700);
+    } catch (err) {
+      console.warn('PDF generation failed, falling back to react-to-print or DOM fallback', err);
+      try {
+        await reactToPrintHandler();
+      } catch (err2) {
+        console.warn('react-to-print failed, using DOM fallback', err2);
+        await fallbackPrint(invoiceRef.current);
+      }
+    } finally {
+      // clear message after short while if not cleared
+      setTimeout(() => setMessage(''), 3000);
+    }
+  }, [reactToPrintHandler, fallbackPrint]);
 
   // Auto-print if flag is set
   useEffect(() => {

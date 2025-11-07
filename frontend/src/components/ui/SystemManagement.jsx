@@ -2,6 +2,25 @@ import React, { useState, useEffect, useMemo } from "react";
 import { ChevronDown, X, Trash2, Save, Search, ChevronLeft, ChevronRight } from "lucide-react";
 import Button from "./Button";
 import { useTranslation } from "react-i18next";
+import toast from "react-hot-toast";
+
+// API
+import {
+  createProduct,
+  updateProduct,
+  deleteProduct,
+} from "../../api/product";
+import {
+  createCustomer,
+  updateCustomer,
+  deleteCustomer,
+} from "../../api/customer";
+import {
+  createCompany,
+  updateCompany,
+  deleteCompany,
+} from "../../api/company";
+import { updateUser, deleteUser, createAdmin } from "../../api/users";
 
 const SystemManagement = ({ 
   usersData = [], 
@@ -239,27 +258,107 @@ const SystemManagement = ({
 
   // Handle save
   const handleSave = () => {
-    // TODO: Implement save logic with appropriate API calls
-    console.log("Saving data:", editedData);
-    setEditMode(false);
-    // After successful save, close modal
-    // setViewModalOpen(false);
+    // Persist edits for the selected item based on current entity type
+    const doSave = async () => {
+      try {
+        const payload = sanitizePayload(editedData);
+        if (!selectedItem || !selectedItem._id) {
+          toast.error("No item selected to update");
+          return;
+        }
+        const id = selectedItem._id || selectedItem.id;
+        if (selectedTarget === "Users") {
+          await updateUser(id, payload);
+        } else if (selectedTarget === "Products") {
+          await updateProduct(id, payload);
+        } else if (selectedTarget === "Customers") {
+          await updateCustomer(id, payload);
+        } else if (selectedTarget === "Companies") {
+          await updateCompany(id, payload);
+        }
+        toast.success(`${selectedTarget.slice(0, -1)} updated`);
+        setEditMode(false);
+        setViewModalOpen(false);
+        // best-effort refresh
+        window.location.reload();
+      } catch (err) {
+        console.error(err);
+        const msg = err?.response?.data?.message || err.message || "Update failed";
+        toast.error(msg);
+      }
+    };
+    doSave();
   };
 
   // Handle create new item
   const handleCreate = () => {
-    // TODO: Implement create logic with appropriate API calls
-    console.log("Creating new item:", editedData);
-    setAddModalOpen(false);
-    setEditedData({});
-    // After successful creation, refresh data and close modal
+    const doCreate = async () => {
+      try {
+        const payload = sanitizePayload(editedData);
+        if (selectedTarget === "Users") {
+          // create admin for admin creation path; fallback to signup
+          if (payload.role === "admin") {
+            await createAdmin(payload);
+          } else {
+            // Use createAdmin as a fallback for creating users here
+            await createAdmin(payload);
+          }
+        } else if (selectedTarget === "Products") {
+          await createProduct(payload);
+        } else if (selectedTarget === "Customers") {
+          await createCustomer(payload);
+        } else if (selectedTarget === "Companies") {
+          await createCompany(payload);
+        }
+        toast.success(`${selectedTarget.slice(0, -1)} created`);
+        setAddModalOpen(false);
+        setEditedData({});
+        window.location.reload();
+      } catch (err) {
+        console.error(err);
+        const msg = err?.response?.data?.message || err.message || "Create failed";
+        toast.error(msg);
+      }
+    };
+    doCreate();
   };
 
   // Handle delete
   const handleDelete = () => {
-    // TODO: Implement delete logic with appropriate API calls
-    console.log("Deleting item:", selectedItem);
-    setViewModalOpen(false);
+    const doDelete = async () => {
+      try {
+        if (!selectedItem) {
+          toast.error("No item selected to delete");
+          return;
+        }
+        const id = selectedItem._id || selectedItem.id;
+        if (!id) {
+          toast.error("Invalid item id");
+          return;
+        }
+        if (selectedTarget === "Users") {
+          await deleteUser(id);
+        } else if (selectedTarget === "Products") {
+          await deleteProduct(id);
+        } else if (selectedTarget === "Customers") {
+          await deleteCustomer(id);
+        } else if (selectedTarget === "Companies") {
+          await deleteCompany(id);
+        }
+        toast.success(`${selectedTarget.slice(0, -1)} deleted`);
+        setViewModalOpen(false);
+        setEditedData({});
+        window.location.reload();
+      } catch (err) {
+        console.error(err);
+        const msg = err?.response?.data?.message || err.message || "Delete failed";
+        toast.error(msg);
+      }
+    };
+    // confirm via native dialog as a safety fallback
+    if (window.confirm(`Are you sure you want to delete this ${selectedTarget.slice(0, -1)}?`)) {
+      doDelete();
+    }
   };
 
   // Handle input change
@@ -268,6 +367,18 @@ const SystemManagement = ({
       ...prev,
       [field]: value,
     }));
+  };
+
+  // Sanitize payload before sending to API: strip read-only or UI-only fields
+  const sanitizePayload = (obj = {}) => {
+    const payload = { ...obj };
+    // remove read-only and derived fields
+    ["createdAt", "updatedAt", "googleId", "priceAfterDiscount", "sold", "totalOrders", "totalPurchases"].forEach((k) => delete payload[k]);
+    // remove empty strings that shouldn't be sent
+    Object.keys(payload).forEach((k) => {
+      if (payload[k] === "") delete payload[k];
+    });
+    return payload;
   };
 
   // Get fields to display based on type

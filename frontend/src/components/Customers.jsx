@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useContext } from "react";
 import { Search, Filter, X } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import {
@@ -14,6 +14,7 @@ import {
   useCustomerByCompany,
   useDeleteCustomer,
 } from "../features/customer/useCustomerQuery";
+import { CompanyContext } from "../features/company/CompanyContext";
 import Loader from "./Loader";
 import toast from "react-hot-toast";
 import { useTranslation } from "react-i18next";
@@ -37,7 +38,9 @@ function Customers() {
   });
 
   const userData = JSON.parse(localStorage.getItem("user"));
-  const companyId = userData?.company;
+  const { currentCompany } = useContext(CompanyContext) || {};
+  const storedCompany = JSON.parse(localStorage.getItem("company"));
+  const companyId = currentCompany?._id || userData?.company || storedCompany?._id || storedCompany?.id;
 
   const { data, isLoading, error } = useCustomerByCompany(companyId);
   const { mutate: deleteCustomer } = useDeleteCustomer();
