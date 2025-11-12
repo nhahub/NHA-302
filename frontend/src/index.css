@@ -20,7 +20,11 @@
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }
-
+/* Enable smooth scrolling for anchor links and programmatic scrolls */
+html {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch; /* smoother momentum on iOS */
+}
 .custom-scrollbar::-webkit-scrollbar-track {
   background: #e1d7c6;
   border-radius: 10px;

@@ -1,5 +1,6 @@
+import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { motion as Motion } from "framer-motion";
+import { motion as Motion, AnimatePresence } from "framer-motion";
 import Button from "./ui/Button";
 import StepCard from "./ui/StepCard";
 import FocusedCards from "./ui/FocusedCards";
@@ -97,6 +98,22 @@ const floatingAnimation = {
 
 function UnregisterHome() {
   const { t } = useTranslation();
+  const [showTopBtn, setShowTopBtn] = useState(false);
+
+  useEffect(() => {
+    const onScroll = () => {
+      // Show button after user scrolls down 300px
+      setShowTopBtn(window.pageYOffset > 300);
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    // run once in case page is already scrolled
+    onScroll();
+    return () => window.removeEventListener("scroll", onScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
   return (
     <>
       <HomeNavbar />
@@ -189,7 +206,7 @@ function UnregisterHome() {
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
             className="w-full sm:w-auto"
           >
-            <Button className="shadow-lg hover:shadow-2xl transition-shadow duration-300 w-full sm:w-auto">
+            <Button className="shadow-lg hover:shadow-2xl transition-shadow duration-300 ">
               <a href="/signup" className="font-quicksand font-bold">
                 {t("StartNow")}
               </a>
@@ -202,7 +219,7 @@ function UnregisterHome() {
             transition={{ type: "spring", stiffness: 400, damping: 10 }}
             className="w-full sm:w-auto"
           >
-            <Button className="bg-transparent border-transparent dark:bg-transparent dark:border-transparent group relative overflow-hidden w-full sm:w-auto">
+            <Button className="bg-transparent border-transparent dark:bg-transparent dark:border-transparent group relative overflow-hidden w-full ">
               <a
                 href="/"
                 className="text-primary dark:text-primary_dark flex items-center justify-center gap-2 font-quicksand font-bold group-hover:text-white transition-colors duration-300 relative"
@@ -535,7 +552,7 @@ function UnregisterHome() {
                 </ul>
 
                 <div className="flex flex-col items-center">
-                  <Button className="w-full sm:w-auto">
+                  <Button className="w-48">
                     <a href="/signup" className="font-quicksand font-bold">
                       {t("StartFree")}
                     </a>
@@ -601,7 +618,7 @@ function UnregisterHome() {
                 </ul>
 
                 <div className="flex flex-col items-center">
-                  <Button className="bg-primary dark:bg-primary_dark before:bg-secondary dark:before:bg-secondary_dark group w-full sm:w-auto">
+                  <Button className="bg-primary dark:bg-primary_dark before:bg-secondary dark:before:bg-secondary_dark group w-48 ">
                     <a
                       href="/pricing"
                       className="font-quicksand font-bold text-white transition-all duration-1000 group-hover:text-black dark:group-hover:text-white"
@@ -663,6 +680,29 @@ function UnregisterHome() {
         >
           <Footer />
         </Motion.div>
+          {/* Back to top floating button */}
+          <AnimatePresence>
+            {showTopBtn && (
+              <Motion.button
+                key="back-to-top"
+                aria-label={t ? t("BackToTop") : "Back to top"}
+                title={t ? t("BackToTop") : "Back to top"}
+                onClick={scrollToTop}
+                initial={{ opacity: 0, x: -24 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -24 }}
+                transition={{ duration: 0.25 }}
+                whileHover={{ scale: 1.08 }}
+                whileTap={{ scale: 0.95 }}
+                className="fixed left-6 bottom-6 z-50 bg-primary dark:bg-primary_dark text-white p-3 rounded-full shadow-lg hover:shadow-2xl transition-transform duration-200"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                  {/* Chevron up */}
+                  <path fillRule="evenodd" d="M3.293 11.293a1 1 0 011.414 0L10 5.586l5.293 5.707a1 1 0 001.414-1.414l-6-6a1 1 0 00-1.414 0l-6 6a1 1 0 010 1.414z" clipRule="evenodd" />
+                </svg>
+              </Motion.button>
+            )}
+          </AnimatePresence>
       </main>
     </>
   );

@@ -4,7 +4,7 @@ import {
   protect,
   restrictTo,
 } from "../../utils/middlewares/auth.middleware.js";
-import { uploadCompanyLogo } from "../../utils/middlewares/upload.middleware.js";
+import { uploadCompanyLogo } from "../../utils/middlewares/upload.config.js";
 
 const companyRouter = express.Router();
 

@@ -601,6 +601,7 @@
   "CreateCompany": "Create Company",
   "Creating": "Creating...",
   "CompanyCreatedSuccessfully": "Company created successfully",
+  "NoPermissionEditCompany": "You don't have permission to edit this company.",
 
   "DangerZone": "Danger Zone",
   "DeleteAccount": "Delete this Account",

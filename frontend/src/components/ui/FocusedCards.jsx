@@ -1,5 +1,5 @@
 import React from "react";
-import invoiceIcon from "../../assets/invoice-icon.png";
+import invoiceIcon from "../../assets/invoice-icon2.png";
 import assistantIcon from "../../assets/assistant-icon.png";
 import inventoryIcon from "../../assets/inventory-icon.png";
 import { useTranslation } from "react-i18next";

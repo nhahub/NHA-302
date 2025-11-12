@@ -1,4 +1,4 @@
-import fullLogo from "../../assets/fulllogo.png";
+import fullLogo from "../../assets/fullLogo.png";
 import homeIcon from "../../assets/homen.png";
 import featuresIcon from "../../assets/features.png";
 import pricingIcon from "../../assets/pricing.png";

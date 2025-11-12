@@ -163,45 +163,52 @@ function Invoices() {
 
   // Transform invoices to match table format
   const transformedInvoices = useMemo(() => {
-    return allInvoices.map((invoice) => {
-      // Transform products to include all necessary details
-      const transformedProducts =
-        invoice.products?.map((p) => {
-          // Check if product is populated (object) or just an ID
-          const productData = typeof p.product === "object" ? p.product : {};
-          return {
-            _id: productData._id || p.product,
-            title: productData.title || productData.name || "Product",
-            description: productData.description || "",
-            price: productData.price || 0,
-            priceAfterDiscount: productData.priceAfterDiscount,
-            quantity: productData.quantity || 0,
-            stockQuantity: productData.quantity || 0,
-            invoiceQuantity: p.quantity || 1,
-            imgCover: productData.imgCover,
-          };
-        }) || [];
+    return allInvoices
+      .filter((invoice) => invoice && invoice._id) // Filter out null/invalid invoices
+      .map((invoice) => {
+        // Transform products to include all necessary details
+        const transformedProducts =
+          invoice.products?.map((p) => {
+            // Skip if product is null or undefined
+            if (!p || !p.product) {
+              return null;
+            }
+            
+            // Check if product is populated (object) or just an ID
+            const productData = typeof p.product === "object" ? p.product : {};
+            return {
+              _id: productData._id || p.product,
+              title: productData.title || productData.name || "Product",
+              description: productData.description || "",
+              price: productData.price || 0,
+              priceAfterDiscount: productData.priceAfterDiscount,
+              quantity: productData.quantity || 0,
+              stockQuantity: productData.quantity || 0,
+              invoiceQuantity: p.quantity || 1,
+              imgCover: productData.imgCover,
+            };
+          }).filter(Boolean) || []; // Remove null entries
 
-      return {
-        id: invoice.invoiceId || invoice._id,
-        _id: invoice._id,
-        customer: invoice.customer?.name || "N/A",
-        customerId: invoice.customer?._id,
-        customerData: invoice.customer,
-        date: invoice.orderDate
-          ? new Date(invoice.orderDate).toLocaleDateString()
-          : "N/A",
-        dueDate: invoice.dueDate,
-        amount: `${invoice.total?.toFixed(2) || 0} EGP`,
-        rawAmount: invoice.total || 0,
-        status: invoice.status || "Pending",
-        orderDate: invoice.orderDate,
-        paymentMethod: invoice.paymentMethod || "Cash",
-        subTotal: invoice.subTotal || 0,
-        discount: invoice.discount || 0,
-        products: transformedProducts,
-      };
-    });
+        return {
+          id: invoice.invoiceId || invoice._id,
+          _id: invoice._id,
+          customer: invoice.customer?.name || "N/A",
+          customerId: invoice.customer?._id,
+          customerData: invoice.customer,
+          date: invoice.orderDate
+            ? new Date(invoice.orderDate).toLocaleDateString()
+            : "N/A",
+          dueDate: invoice.dueDate,
+          amount: `${invoice.total?.toFixed(2) || 0} EGP`,
+          rawAmount: invoice.total || 0,
+          status: invoice.status || "Pending",
+          orderDate: invoice.orderDate,
+          paymentMethod: invoice.paymentMethod || "Cash",
+          subTotal: invoice.subTotal || 0,
+          discount: invoice.discount || 0,
+          products: transformedProducts,
+        };
+      });
   }, [allInvoices]);
 
   // Filter and sort invoices
@@ -212,18 +219,22 @@ function Invoices() {
     if (searchTerm) {
       result = result.filter(
         (invoice) =>
-          invoice.id
-            .toString()
-            .toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          invoice.customer.toLowerCase().includes(searchTerm.toLowerCase())
+          (invoice.id &&
+            invoice.id
+              .toString()
+              .toLowerCase()
+              .includes(searchTerm.toLowerCase())) ||
+          (invoice.customer &&
+            invoice.customer.toLowerCase().includes(searchTerm.toLowerCase()))
       );
     }
 
     // Apply status filter
     if (statusFilter !== "all") {
       result = result.filter(
-        (invoice) => invoice.status.toLowerCase() === statusFilter.toLowerCase()
+        (invoice) =>
+          invoice.status &&
+          invoice.status.toLowerCase() === statusFilter.toLowerCase()
       );
     }
 
@@ -231,13 +242,13 @@ function Invoices() {
     result.sort((a, b) => {
       switch (sortBy) {
         case "date":
-          return new Date(b.orderDate) - new Date(a.orderDate);
+          return new Date(b.orderDate || 0) - new Date(a.orderDate || 0);
         case "amount":
-          return b.rawAmount - a.rawAmount;
+          return (b.rawAmount || 0) - (a.rawAmount || 0);
         case "status":
-          return a.status.localeCompare(b.status);
+          return (a.status || "").localeCompare(b.status || "");
         case "customer":
-          return a.customer.localeCompare(b.customer);
+          return (a.customer || "").localeCompare(b.customer || "");
         default:
           return 0;
       }
@@ -655,7 +666,7 @@ function Invoices() {
                 {!searchTerm && statusFilter === "all" && (
                   <Button
                     onClick={() => navigate("/dashboard/invoice/add")}
-                    className="!bg-primary dark:!bg-primary_dark !text-white hover:!bg-accent dark:hover:!bg-accent_dark hover:!text-black dark:hover:!text-white !border-primary dark:!border-primary_dark hover:!border-accent dark:hover:!border-accent_dark before:!bg-accent dark:before:!bg-accent_dark"
+                    className="w-48 !bg-primary dark:!bg-primary_dark !text-white hover:!bg-accent dark:hover:!bg-accent_dark hover:!text-black dark:hover:!text-white !border-primary dark:!border-primary_dark hover:!border-accent dark:hover:!border-accent_dark before:!bg-accent dark:before:!bg-accent_dark"
                   >
                     {t("createFirstInvoice")}
                   </Button>

@@ -910,6 +910,64 @@ function Products() {
                   </div>
                 </div>
               )}
+
+              {/* Delete Modal - Mobile */}
+              {openItems[`modal-${p._id}`] && (
+                <div className="fixed inset-0 bg-black/40 dark:bg-black/60 flex justify-center items-center z-50">
+                  <div className="bg-background dark:bg-background_dark rounded-2xl shadow-xl w-[90%] sm:w-[400px] p-6 relative transition-all duration-300 border border-gray-200 dark:border-gray-700">
+                    <button
+                      onClick={() => toggleModal(p._id, false)}
+                      className="absolute top-4 right-4 text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-500 transition-all duration-200"
+                    >
+                      <X
+                        size={22}
+                        className="rounded-2xl border-red-800 dark:border-red-700 border-2 text-red-800 dark:text-red-700 hover:text-red-900 dark:hover:text-red-600 hover:border-red-900 dark:hover:border-red-600 transition-all duration-300 ease-in-out"
+                      />
+                    </button>
+
+                    <div className="text-center space-y-4 mt-2">
+                      <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                        {t("DeleteProduct")}
+                      </h3>
+                      <p className="text-sm text-gray-700 dark:text-gray-300">
+                        {t("AreYouSureYouWantToDelete")} <b>{p.title}</b>?
+                      </p>
+
+                      <div className="flex justify-center gap-4 pt-4">
+                        <button
+                          onClick={() => toggleModal(p._id, false)}
+                          className="px-4 py-2 bg-secondary dark:bg-secondary_dark text-gray-900 dark:text-white rounded-md hover:bg-gray-300 dark:hover:bg-gray-700 transition"
+                        >
+                          {t("Cancel")}
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            deleteProduct(p._id, {
+                              onSuccess: () => {
+                                toast.success(
+                                  "Product deleted successfully"
+                                );
+                                toggleModal(p._id, false);
+                                refetch(); // Refetch products after deletion
+                              },
+                              onError: (err) => {
+                                toast.error(
+                                  err?.response?.data?.message ||
+                                    "Failed to delete product"
+                                );
+                              },
+                            });
+                          }}
+                          className="px-4 py-2 bg-red-800 dark:bg-red-700 text-white rounded-md hover:bg-red-700 dark:hover:bg-red-600 transition"
+                        >
+                          {t("ConfirmDelete")}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ))}
         </section>

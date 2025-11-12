@@ -1,4 +1,5 @@
 import { productModel } from "../../models/product.model.js";
+import { getFileUrl } from "../../utils/helpers/fileUpload.helper.js";
 import {
   createOne,
   updateOne,
@@ -17,7 +18,7 @@ const createProduct = catchAsyncError(async (req, res, next) => {
   
   // If a file was uploaded, add the file path to req.body
   if (req.file) {
-    req.body.imgCover = `${req.protocol}://${req.get("host")}/uploads/product-images/${req.file.filename}`;
+    req.body.imgCover = getFileUrl(req.file, req, "product-images");
     console.log("📷 Product image uploaded:", req.body.imgCover);
   }
   
@@ -82,7 +83,7 @@ const updateProduct = catchAsyncError(async (req, res, next) => {
 
   // If a file was uploaded, add the file path to req.body
   if (req.file) {
-    req.body.imgCover = `${req.protocol}://${req.get("host")}/uploads/product-images/${req.file.filename}`;
+    req.body.imgCover = getFileUrl(req.file, req, "product-images");
     console.log("📷 Product image updated:", req.body.imgCover);
   }
 

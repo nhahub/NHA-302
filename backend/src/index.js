@@ -20,6 +20,7 @@ import { chargeAllUsers } from "./modules/pricing_billing/pricing_billing.servic
 import InvoiceRoutes from "./modules/invoice/invoice.routes.js";
 import ReportRoutes from "./modules/report/report.routes.js";
 import AIAssistanceRoutes from "./modules/AiAssistance/aiAssistance.route.js";
+import CronRoutes from "./modules/cron/cron.routes.js";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -29,6 +30,7 @@ const __dirname = path.dirname(__filename);
 dotenv.config();
 connectDB();
 const app = express();
+const isProduction = process.env.NODE_ENV === 'production';
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 100,
@@ -41,7 +43,9 @@ const limiter = rateLimit({
 app.use(express.json());
 app.use(
   cors({
-    origin: [process.env.FRONTEND_URL],
+    origin: process.env.FRONTEND_URL ? 
+      [process.env.FRONTEND_URL] : 
+      ['http://localhost:5173', 'http://localhost:3000'],
     credentials: true,
   })
 );
@@ -69,6 +73,7 @@ app.use("/api/company", CompanyRoutes);
 app.use("/api/invoice", InvoiceRoutes);
 app.use("/api/reports", ReportRoutes);
 app.use("/api/ai", AIAssistanceRoutes);
+app.use("/api/cron", CronRoutes);
 
 app.use((req, res, next) =>
   next(new AppError(`Can't find ${req.originalUrl} on this server`, 404))
@@ -76,13 +81,25 @@ app.use((req, res, next) =>
 app.use(globalErrorHandler);
 
 //node-cron => is a time-based job scheduler runs automatically at a specific time
-cron.schedule("0 0 * * *", async () => {
-  console.log("Starting scheduled batch charge...");
-  await chargeAllUsers();
-  console.log("Finished scheduled batch charge");
-});
+if (isProduction || process.env.ENABLE_CRON === 'true') {
+  cron.schedule("0 0 * * *", async () => {
+    console.log("Starting scheduled batch charge...");
+    await chargeAllUsers();
+    console.log("Finished scheduled batch charge");
+  });
+  console.log("✅ Cron job enabled - Daily billing charges scheduled");
+} else {
+  console.log("⚠️ Cron jobs disabled in development mode");
+}
 
-const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log("Server running on port ", PORT);
-});
+// Traditional server for local development
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 3000;
+  app.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+    console.log(`📝 Environment: ${isProduction ? 'Production' : 'Development'}`);
+  });
+}
+
+// Export for Vercel serverless deployment
+export default app;

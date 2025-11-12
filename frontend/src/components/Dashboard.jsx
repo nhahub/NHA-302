@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import logo from "../assets/fulllogo.png";
+import logo from "../assets/fullLogo.png";
 import plusIcon from "../assets/add-icon-b.png";
 import invoiceIcon from "../assets/invoice-icon.png";
 import productIcon from "../assets/product.png";

@@ -4,7 +4,7 @@ import {
   protect,
   restrictTo,
 } from "../../utils/middlewares/auth.middleware.js";
-import { uploadProductImage } from "../../utils/middlewares/upload.middleware.js";
+import { uploadProductImage } from "../../utils/middlewares/upload.config.js";
 
 const productRouter = express.Router();
 

@@ -465,9 +465,6 @@ function Customers() {
                   className="grid grid-cols-6 gap-4 items-center bg-accent dark:bg-accent_dark shadow-sm rounded-2xl px-6 py-4 mb-3 hover:shadow-md transition-all duration-300"
                 >
                   <div>
-                    <p className="text-xs text-primary dark:text-primary_dark font-quicksand">
-                      {t("ID")} {customer._id}
-                    </p>
                     <p className="font-medium text-gray-900 dark:text-white font-quicksand">
                       {customer.name}
                     </p>

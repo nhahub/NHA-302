@@ -202,14 +202,6 @@ function AddCustomer() {
           <div className="flex flex-col gap-1 bg-accent dark:bg-accent_dark p-6 rounded-2xl mb-5 font-quicksand">
             <h3 className="text-xl font-semibold pb-2 text-gray-900 dark:text-white">{t("PersonalInfo")}</h3>
 
-            <label htmlFor="ID" className="text-gray-900 dark:text-white">{t("ID")}</label>
-            <input
-              type="text"
-              id="ID"
-              value={formData.id}
-              onChange={(e) => handleChange("id", e.target.value)}
-              className="p-2 bg-secondary dark:bg-secondary_dark border-2 border-gray-300 dark:border-gray-600 focus:outline-none focus:border-primary dark:focus:border-primary_dark rounded-xl text-gray-900 dark:text-white"
-            />
 
             <label htmlFor="Name" className="text-gray-900 dark:text-white">{t("FullName")}</label>
             <input
@@ -222,33 +214,6 @@ function AddCustomer() {
             {fieldErrors.fullName && (
               <p className="text-sm text-red-600 mt-1">{fieldErrors.fullName}</p>
             )}
-          </div>
-
-          <div className="flex flex-col gap-1 bg-accent dark:bg-accent_dark p-6 rounded-2xl font-quicksand">
-            <h3 className="text-xl font-semibold pb-2 text-gray-900 dark:text-white">{t("OrderDetails")}</h3>
-
-            <div className="flex md:flex-row flex-col gap-4">
-              <div className="flex flex-col md:w-[50%] w-full">
-                <label htmlFor="ordersQty" className="text-gray-900 dark:text-white">{t("OrdersQTY")}</label>
-                <input
-                  type="text"
-                  id="ordersQty"
-                  value={formData.ordersQty}
-                  onChange={(e) => handleChange("ordersQty", e.target.value)}
-                  className="p-2 bg-secondary dark:bg-secondary_dark border-2 border-gray-300 dark:border-gray-600 focus:outline-none focus:border-primary dark:focus:border-primary_dark rounded-xl text-gray-900 dark:text-white"
-                />
-              </div>
-              <div className="flex flex-col md:w-[50%] w-full">
-                <label htmlFor="purchases" className="text-gray-900 dark:text-white">{t("Purchases")}</label>
-                <input
-                  type="text"
-                  id="purchases"
-                  value={formData.purchases}
-                  onChange={(e) => handleChange("purchases", e.target.value)}
-                  className="p-2 bg-secondary dark:bg-secondary_dark border-2 border-gray-300 dark:border-gray-600 focus:outline-none focus:border-primary dark:focus:border-primary_dark rounded-xl text-gray-900 dark:text-white"
-                />
-              </div>
-            </div>
           </div>
         </div>
 

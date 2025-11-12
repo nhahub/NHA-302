@@ -31,30 +31,74 @@ function InvoicePreviewPage() {
   const [companyData, setCompanyData] = useState(null);
   const [message, setMessage] = useState("");
 
-  // Fetch current user's company data
+  // Helper function to get properly formatted image URL
+  const getImageUrl = useCallback((path) => {
+    if (!path) return logo; // Return PayFlow logo as fallback
+    if (path.startsWith("http") || path.startsWith("data:")) return path;
+    const baseUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+    return `${baseUrl}${path}`;
+  }, []);
+
+  // Fetch current user's company data only if needed
   useEffect(() => {
     const fetchCompanyData = async () => {
-      // If currentUser.company is already an object with name, use it
+      // Check if company data exists in localStorage
+      const storedCompany = localStorage.getItem("company");
+      let parsedStoredCompany = null;
+      if (storedCompany && storedCompany !== "undefined") {
+        try {
+          parsedStoredCompany = JSON.parse(storedCompany);
+        } catch (e) {
+          console.error("Error parsing stored company:", e);
+        }
+      }
+
+      // If currentUser.company is already a populated object with name and logo, use it directly
       if (currentUser?.company && typeof currentUser.company === 'object' && currentUser.company.name) {
+        console.log("✅ Using company from currentUser:", currentUser.company);
         setCompanyData(currentUser.company);
         return;
       }
 
-      // Otherwise fetch the company data
-      try {
-        setFetchingCompany(true);
-        const response = await getMyCompany();
-        if (response?.data) {
-          setCompanyData(response.data);
+      // Check if we have stored company data
+      if (parsedStoredCompany && parsedStoredCompany.name) {
+        console.log("✅ Using company from localStorage:", parsedStoredCompany);
+        setCompanyData(parsedStoredCompany);
+        return;
+      }
+
+      // Only fetch if user has a company ID but it's not populated
+      const companyId = currentUser?.company || parsedStoredCompany?._id || parsedStoredCompany?.id;
+      
+      if (companyId && typeof companyId === 'string') {
+        try {
+          setFetchingCompany(true);
+          console.log("🔄 Fetching company data for ID:", companyId);
+          const response = await getMyCompany();
+          if (response?.data) {
+            console.log("✅ Company data fetched:", {
+              name: response.data.name,
+              logo: response.data.logo || response.data.companyLogo,
+              hasLogo: !!(response.data.logo || response.data.companyLogo)
+            });
+            setCompanyData(response.data);
+            // Save to localStorage for future use
+            localStorage.setItem("company", JSON.stringify(response.data));
+          } else {
+            console.log("⚠️ No company data returned from API");
+            setCompanyData(null);
+          }
+        } catch (error) {
+          console.error("❌ Error fetching company:", error);
+          // Set companyData to null on error so we show PayFlow logo as fallback
+          setCompanyData(null);
+        } finally {
+          setFetchingCompany(false);
         }
-      } catch (error) {
-        console.error("Error fetching company:", error);
-        // Fallback to whatever is in currentUser
-        if (currentUser?.company) {
-          setCompanyData(typeof currentUser.company === 'object' ? currentUser.company : null);
-        }
-      } finally {
-        setFetchingCompany(false);
+      } else {
+        // No company at all - user might not have set up company yet
+        console.log("⚠️ No company found for user - using PayFlow branding");
+        setCompanyData(null);
       }
     };
 
@@ -633,12 +677,16 @@ function InvoicePreviewPage() {
               <div className="flex justify-start sm:justify-end mb-3">
                 {companyData?.logo || companyData?.companyLogo ? (
                   <img
-                    src={
-                      companyData?.logo ||
-                      companyData?.companyLogo
-                    }
+                    src={getImageUrl(companyData?.logo || companyData?.companyLogo)}
                     alt="Company Logo"
                     className="h-12 sm:h-16 w-auto object-contain"
+                    crossOrigin="anonymous"
+                    onError={(e) => {
+                      console.error("Company logo failed to load:", e.target.src);
+                      // Fallback to PayFlow logo if company logo fails to load
+                      e.target.onerror = null;
+                      e.target.src = logo;
+                    }}
                   />
                 ) : (
                   <img

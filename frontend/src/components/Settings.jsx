@@ -493,13 +493,29 @@ function Settings() {
                     "You haven't created a company yet. Create one to manage your business settings."}
                 </p>
 
+                
+
                 {!showCreateCompanyForm ? (
+                  <div>
+
+                    <Button
+                      className="w-48 mb-0 bg-primary dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black"
+                      onClick={() => setShowCreateCompanyForm(true)}
+                    >
+                      {t("CreateCompany") || "Create Company"}
+                    </Button>
+                    <div className="flex flex-col items-center">
+                  <p className="text-xs sm:text-sm text-gray-600 dark:text-gray-400 mt-4">
+                    If you have a company please refresh.
+                  </p>
                   <Button
-                    className="mb-0 bg-primary dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black"
-                    onClick={() => setShowCreateCompanyForm(true)}
+                    className="w-28 bg-primary dark:bg-primary_dark before:bg-secondary text-white dark:hover:text-black"
+                    onClick={() => window.location.reload()}
                   >
-                    {t("CreateCompany") || "Create Company"}
+                    {t("Refresh") || "Refresh"}
                   </Button>
+                </div>  
+                  </div>
                 ) : (
                   <div className="space-y-4 sm:space-y-6 mt-6">
                     {/* Company Logo */}

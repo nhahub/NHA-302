@@ -1218,7 +1218,7 @@ function AddInvoice() {
                       <Button
                         onClick={() => handleAddProduct(product)}
                         disabled={product.quantity <= 0}
-                        className="w-1/2 mx-auto !bg-primary dark:!bg-primary_dark !text-white hover:!bg-accent dark:hover:!bg-secondary_dark hover:!text-black dark:hover:!text-white !border-primary dark:!border-primary_dark hover:!border-accent dark:hover:!border-secondary_dark before:!bg-accent dark:before:!bg-secondary_dark disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="w-40 mx-auto !bg-primary dark:!bg-primary_dark !text-white hover:!bg-accent dark:hover:!bg-secondary_dark hover:!text-black dark:hover:!text-white !border-primary dark:!border-primary_dark hover:!border-accent dark:hover:!border-secondary_dark before:!bg-accent dark:before:!bg-secondary_dark disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         {product.quantity <= 0
                           ? "Out of Stock"

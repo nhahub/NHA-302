@@ -124,9 +124,6 @@ function ViewCustomer() {
               <h2 className="text-3xl font-robotoCondensed font-semibold text-gray-900 dark:text-white">
                 {customer.name}
               </h2>
-              <p className="text-gray-500 dark:text-gray-400 text-sm font-quicksand">
-                {t("ID")} {customer._id}
-              </p>
               <div className="mt-2 text-gray-900 dark:text-white font-quicksand text-sm leading-6">
                 <p>
                   <span className="text-gray-500 dark:text-gray-400">{t("Email")}:</span>{" "}

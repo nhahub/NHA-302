@@ -602,6 +602,11 @@
   "ChangeImage": "تغيير الصورة",
   "UploadImage": "رفع الصورة",
   "CompanyUpdatedSuccessfully": "تم تحديث الشركة بنجاح",
+  "NoCompanyMessage": "لم تقم بإنشاء شركة بعد. أنشئ واحدة لإدارة إعدادات عملك.",
+  "CreateCompany": "إنشاء شركة",
+  "Creating": "جاري الإنشاء...",
+  "CompanyCreatedSuccessfully": "تم إنشاء الشركة بنجاح",
+  "NoPermissionEditCompany": "ليس لديك الصلاحية لتعديل هذه الشركة.",
 
   "DangerZone": "منطقة الخطر",
   "DeleteAccount": "حذف الحساب",

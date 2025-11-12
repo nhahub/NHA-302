@@ -1,4 +1,5 @@
 import { companyModel } from "../../models/company.model.js";
+import { getFileUrl } from "../../utils/helpers/fileUpload.helper.js";
 import {
   createOne,
   updateOne,
@@ -31,9 +32,7 @@ export const updateCompany = async (req, res) => {
 
     // If a file was uploaded, add the file path to updateData
     if (req.file) {
-      updateData.companyLogo = `${req.protocol}://${req.get(
-        "host"
-      )}/uploads/company-logos/${req.file.filename}`;
+      updateData.companyLogo = getFileUrl(req.file, req, "company-logos");
       console.log("📷 Logo path set to:", updateData.companyLogo);
     }
 
