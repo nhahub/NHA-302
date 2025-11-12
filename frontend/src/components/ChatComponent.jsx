@@ -9,8 +9,8 @@ const ChatComponent = () => {
   useEffect(() => {
     setMessages([
       {
-        sender: "popo",
-        text: t("PopoIntroduction"),
+        sender: "penny",
+        text: t("PennyIntroduction"),
       },
     ]);
   }, [i18n.language, t]);
@@ -45,14 +45,29 @@ const ChatComponent = () => {
     try {
       const res = await askAI(input);
       const botMessage = {
-        sender: "popo",
+        sender: "penny",
         text: res?.response || "No response found.",
       };
       setMessages((prev) => [...prev, botMessage]);
     } catch (err) {
-      const errMsg =
-        err.response?.data?.error || "Something went wrong. Please try again.";
-      setMessages((prev) => [...prev, { sender: "popo", text: errMsg }]);
+      console.error("AI Error:", err);
+      let errMsg = "Something went wrong. Please try again.";
+      
+      // Check for specific error messages
+      if (err.response?.data?.message) {
+        errMsg = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errMsg = err.response.data.error;
+      } else if (err.message) {
+        errMsg = err.message;
+      }
+      
+      // Check if it's an API key issue
+      if (errMsg.includes("API key") || errMsg.includes("Gemini")) {
+        errMsg = "AI service is temporarily unavailable. Please contact support or try again later.";
+      }
+      
+      setMessages((prev) => [...prev, { sender: "penny", text: errMsg }]);
     } finally {
       setLoading(false);
     }
@@ -105,7 +120,7 @@ const ChatComponent = () => {
                     ></div>
                   </div>
                   <span className="text-gray-500 dark:text-gray-300 text-sm">
-                    popo is thinking...
+                    Penny is thinking...
                   </span>
                 </div>
               </div>

@@ -96,25 +96,8 @@ const Table = ({ invoices, className }) => {
 
   // Handle view invoice
   const handleView = (invoice) => {
-    navigate(`/dashboard/invoice/preview`, {
-      state: {
-        invoiceData: {
-          invoiceId: invoice.id,
-          orderDate: invoice.orderDate,
-          dueDate: invoice.dueDate,
-          status: invoice.status,
-          paymentMethod: invoice.paymentMethod || "Cash",
-          subTotal: invoice.subTotal || invoice.rawAmount,
-          total: invoice.rawAmount,
-          discount: invoice.discount || 0,
-          products: invoice.products || [],
-          customer: invoice.customerId,
-          _id: invoice._id,
-        },
-        selectedProducts: invoice.products || [],
-        customers: invoice.customerData ? [invoice.customerData] : [],
-      },
-    });
+    // Navigate with invoice ID in URL so component can fetch full data with populated fields
+    navigate(`/dashboard/invoice/preview/${invoice._id}`);
   };
 
   // Handle edit invoice
@@ -143,24 +126,9 @@ const Table = ({ invoices, className }) => {
 
   // Handle print invoice
   const handlePrint = (invoice) => {
-    // Navigate to preview with print flag
-    navigate(`/dashboard/invoice/preview`, {
+    // Navigate to preview with print flag and invoice ID
+    navigate(`/dashboard/invoice/preview/${invoice._id}`, {
       state: {
-        invoiceData: {
-          invoiceId: invoice.id,
-          orderDate: invoice.orderDate,
-          dueDate: invoice.dueDate,
-          status: invoice.status,
-          paymentMethod: invoice.paymentMethod || "Cash",
-          subTotal: invoice.subTotal || invoice.rawAmount,
-          total: invoice.rawAmount,
-          discount: invoice.discount || 0,
-          products: invoice.products || [],
-          customer: invoice.customerId,
-          _id: invoice._id,
-        },
-        selectedProducts: invoice.products || [],
-        customers: invoice.customerData ? [invoice.customerData] : [],
         autoPrint: true, // Flag to trigger print on load
       },
     });

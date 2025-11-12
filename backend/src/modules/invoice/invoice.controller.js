@@ -3,11 +3,11 @@ import { productModel } from "../../models/product.model.js";
 import {
   updateOne,
   deleteOne,
-  getById,
 } from "../../utils/handlers/refactor.handler.js";
 import catchAsyncError from "../../utils/middlewares/catchAsync.js";
 import ApiFeatures from "../../utils/features/apiFeatures.js";
 import catchAsync from "../../utils/middlewares/catchAsync.js";
+import AppError from "../../utils/services/appError.js";
 import { Parser } from "json2csv";
 import ExcelJS from "exceljs";
 import PDFDocument from "pdfkit";
@@ -43,8 +43,22 @@ export const getAllInvoices = catchAsync(async (req, res, next) => {
     data: results,
   });
 });
-//get invoice by id
-export const getInvoiceById = getById(invoiceModel, "invoice");
+//get invoice by id with populated customer, company, and products
+export const getInvoiceById = catchAsyncError(async (req, res, next) => {
+  const { id } = req.params;
+  const result = await invoiceModel
+    .findById(id)
+    .populate("customer")
+    .populate("company")
+    .populate({
+      path: "products.product",
+      select: "title name description price priceAfterDiscount quantity imgCover"
+    });
+  
+  if (!result) return next(new AppError("Invoice not found", 404));
+  
+  res.status(200).json({ status: "success", data: result });
+});
 
 //update invoice by id
 export const updateInvoice = updateOne(invoiceModel, "invoice");

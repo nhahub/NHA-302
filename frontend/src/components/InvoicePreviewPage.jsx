@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from "react";
-import { useNavigate, useLocation, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link, useParams } from "react-router-dom";
 import { useReactToPrint } from "react-to-print";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -7,20 +7,114 @@ import Button from "./ui/Button";
 import { useUserContext } from "../features/user/useUserContext";
 import logo from "../assets/logo.png";
 import { useTranslation } from "react-i18next";
+import { getInvoice } from "../api/invoice";
+import { getMyCompany } from "../api/company";
 
 function InvoicePreviewPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
+  const { id: invoiceId } = useParams();
   const { currentUser } = useUserContext();
   const invoiceRef = useRef();
 
   // Get invoice data from navigation state
-  const { invoiceData, selectedProducts, customers, autoPrint } =
-    location.state || {};
-
+  const locationState = location.state || {};
+  
+  const [invoiceData, setInvoiceData] = useState(locationState.invoiceData || null);
+  const [selectedProducts, setSelectedProducts] = useState(locationState.selectedProducts || []);
+  const [customers, setCustomers] = useState(locationState.customers || []);
+  const [autoPrint] = useState(locationState.autoPrint || false);
   const [loading, setLoading] = useState(false);
+  const [fetchingInvoice, setFetchingInvoice] = useState(false);
+  const [fetchingCompany, setFetchingCompany] = useState(false);
+  const [companyData, setCompanyData] = useState(null);
   const [message, setMessage] = useState("");
+
+  // Fetch current user's company data
+  useEffect(() => {
+    const fetchCompanyData = async () => {
+      // If currentUser.company is already an object with name, use it
+      if (currentUser?.company && typeof currentUser.company === 'object' && currentUser.company.name) {
+        setCompanyData(currentUser.company);
+        return;
+      }
+
+      // Otherwise fetch the company data
+      try {
+        setFetchingCompany(true);
+        const response = await getMyCompany();
+        if (response?.data) {
+          setCompanyData(response.data);
+        }
+      } catch (error) {
+        console.error("Error fetching company:", error);
+        // Fallback to whatever is in currentUser
+        if (currentUser?.company) {
+          setCompanyData(typeof currentUser.company === 'object' ? currentUser.company : null);
+        }
+      } finally {
+        setFetchingCompany(false);
+      }
+    };
+
+    if (currentUser) {
+      fetchCompanyData();
+    }
+  }, [currentUser]);
+
+  // Fetch invoice data if not provided in location state or if ID is in URL
+  useEffect(() => {
+    const fetchInvoiceData = async () => {
+      // If we have invoiceData and it has customer populated, no need to fetch
+      if (invoiceData && invoiceData.customer && typeof invoiceData.customer === 'object') {
+        return;
+      }
+
+      // If we have an ID in URL or in invoiceData, fetch the full invoice
+      const idToFetch = invoiceId || invoiceData?._id || invoiceData?.id;
+      
+      if (idToFetch) {
+        setFetchingInvoice(true);
+        try {
+          const response = await getInvoice(idToFetch);
+          if (response?.data) {
+            setInvoiceData(response.data);
+            // If customer is populated, add it to customers array
+            if (response.data.customer && typeof response.data.customer === 'object') {
+              setCustomers([response.data.customer]);
+            }
+            // If products are populated, transform them
+            if (response.data.products && response.data.products.length > 0) {
+              const transformed = response.data.products.map((item) => {
+                const productData = typeof item.product === "object" ? item.product : {};
+                return {
+                  _id: productData._id || item.product,
+                  title: productData.title || productData.name || "Product",
+                  name: productData.title || productData.name || "Product",
+                  description: productData.description || "",
+                  price: productData.priceAfterDiscount || productData.price || 0,
+                  priceAfterDiscount: productData.priceAfterDiscount,
+                  invoiceQuantity: item.quantity || 1,
+                  imgCover: productData.imgCover,
+                };
+              });
+              setSelectedProducts(transformed);
+            }
+          }
+        } catch (error) {
+          console.error("Error fetching invoice:", error);
+          setMessage("Failed to load invoice data");
+          setTimeout(() => setMessage(""), 3000);
+        } finally {
+          setFetchingInvoice(false);
+        }
+      }
+    };
+
+    fetchInvoiceData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoiceId]);
 
   // Transform products from API format to display format
   const transformedProducts = React.useMemo(() => {
@@ -61,17 +155,6 @@ function InvoicePreviewPage() {
     // Otherwise find from customers array (from AddInvoice)
     return customers?.find((c) => c._id === invoiceData?.customer);
   }, [invoiceData, customers]);
-
-  // Get company data - handle both formats
-  const companyData = React.useMemo(() => {
-    // If company is already an object in invoiceData (from API)
-    if (invoiceData?.company && typeof invoiceData.company === "object") {
-      return invoiceData.company;
-    }
-
-    // Otherwise use currentUser company
-    return currentUser?.company;
-  }, [invoiceData, currentUser]);
 
   // Handle print via react-to-print, with a safe fallback
   const reactToPrintHandler = useReactToPrint({
@@ -296,7 +379,7 @@ function InvoicePreviewPage() {
     }
 
     const subject = `Invoice #${invoiceData.invoiceId} from ${
-      companyData?.name || currentUser?.company?.name || "PayFlow"
+      companyData?.name || "PayFlow"
     }`;
     const body = `Dear ${
       customer.name
@@ -343,6 +426,18 @@ function InvoicePreviewPage() {
       });
     }
   };
+
+  // Show loading state while fetching invoice or company
+  if (fetchingInvoice || fetchingCompany) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary dark:border-primary_dark mb-4"></div>
+        <p className="text-xl font-quicksand">
+          {fetchingInvoice ? t("Loading invoice...") : t("Loading company data...")}
+        </p>
+      </div>
+    );
+  }
 
   if (!invoiceData || transformedProducts.length === 0) {
     return (
@@ -526,6 +621,9 @@ function InvoicePreviewPage() {
               <h1 className="text-3xl sm:text-4xl font-robotoCondensed font-bold text-primary mb-2">
                 {t("Invoice")}
               </h1>
+              <h3 className="text-2xl font-robotoCondensed font-bold text-primary mb-2">
+                {t("by PayFlow")}
+              </h3>
               <p className="font-quicksand text-sm sm:text-base text-gray-600">
                 #{invoiceData.invoiceId}
               </p>
@@ -533,14 +631,11 @@ function InvoicePreviewPage() {
             <div className="text-left sm:text-right w-full sm:w-auto">
               {/* Company Logo */}
               <div className="flex justify-start sm:justify-end mb-3">
-                {companyData?.companyLogo ||
-                companyData?.logo ||
-                currentUser?.company?.logo ? (
+                {companyData?.logo || companyData?.companyLogo ? (
                   <img
                     src={
-                      companyData?.companyLogo ||
                       companyData?.logo ||
-                      currentUser?.company?.logo
+                      companyData?.companyLogo
                     }
                     alt="Company Logo"
                     className="h-12 sm:h-16 w-auto object-contain"
@@ -554,16 +649,16 @@ function InvoicePreviewPage() {
                 )}
               </div>
               <h2 className="text-xl sm:text-2xl font-robotoCondensed font-bold mb-2 text-primary">
-                {companyData?.name || currentUser?.company?.name || "PayFlow"}
+                {companyData?.name || "PayFlow"}
               </h2>
               <p className="font-quicksand text-xs sm:text-sm text-gray-600">
-                {companyData?.address || currentUser?.company?.address || ""}
+                {companyData?.address || ""}
               </p>
               <p className="font-quicksand text-xs sm:text-sm text-gray-600">
-                {companyData?.phone || currentUser?.company?.phone || ""}
+                {companyData?.phone || ""}
               </p>
               <p className="font-quicksand text-xs sm:text-sm text-gray-600">
-                {companyData?.email || currentUser?.company?.email || ""}
+                {companyData?.email || ""}
               </p>
             </div>
           </div>
