@@ -5,6 +5,17 @@ With integrated AI insights and seamless payment handling — PayFlow makes busi
 
 ---
 
+## Group Details:
+
+```bash
+- Group name: ALX3_SWD2_S1
+- Instructor name: Basmaa Abd Elhaleem
+```
+
+---
+
+---
+
 ## Presented By:
 
 ```bash
