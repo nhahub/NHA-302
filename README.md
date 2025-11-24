@@ -83,16 +83,18 @@ With integrated AI insights and seamless payment handling — PayFlow makes busi
 
 ## Screenshots:
 
-| Page                  | Preview                                    |
-| --------------------- | ------------------------------------------ |
-| **Login**             | ![Login](./assets/login.png)               |
-| **Dashboard**         | ![Dashboard](./assets/dashboard.png)       |
-| **Invoices**          | ![Invoices](./assets/invoices.png)         |
-| **Products**          | ![Products](./assets/products.png)         |
-| **Customers**         | ![Customers](./assets/customers.png)       |
-| **Pricing & Billing** | ![Pricing_Billing](./assets/billing.png)   |
-| **Reports**           | ![Reports](./assets/reports.png)           |
-| **AI Assistant**      | ![AI Assistant](./assets/ai-assistant.png) |
-| **Admin Panel**       | ![Admin Panel](./assets/admin-panel.png)   |
+| Page                   | Preview                                                              |
+| ---------------------- | -------------------------------------------------------------------- |
+| **Unregistered Panel** | ![Unregistered](./frontend/src/assets/unregistered_github.png)       |
+| **Login**              | ![Login](./frontend/src/assets/login_github.png)                     |
+| **Dashboard**          | ![Dashboard](./frontend/src/assets/dashboard_github.png)             |
+| **Invoices**           | ![Invoices](./frontend/src/assets/invoice_github.png)                |
+| **Products**           | ![Products](./frontend/src/assets/product_github.png)                |
+| **Customers**          | ![Customers](./frontend/src/assets/customer_github.png)              |
+| **Pricing & Billing**  | ![Pricing_Billing](./frontend/src/assets/pricing_billing_github.png) |
+| **Reports**            | ![Reports](./frontend/src/assets/report_github.png)                  |
+| **AI Assistant**       | ![AI Assistant](./frontend/src/assets/ai_assistance_github.png)      |
+| **Settings**           | ![Settings](./frontend/src/assets/settings_github.png)               |
+| **Admin Panel**        | ![Admin Panel](./frontend/src/assets/admin_github.png)               |
 
 ---
